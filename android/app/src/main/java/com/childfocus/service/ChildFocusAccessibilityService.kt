@@ -7,6 +7,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -19,9 +20,9 @@ import java.util.regex.Pattern
 class ChildFocusAccessibilityService : AccessibilityService() {
 
     companion object {
-        // ── Change this ONE line to switch targets ────────────────────────────
-        // Emulator (Pixel 3a AVD)  → "10.0.2.2"
-        // Physical (Infinix WiFi)  → "192.168.100.136"
+        // ── Change this ONE line to switch targets ────────────────────────
+        // Emulator (Pixel AVD)     → "10.0.2.2"
+        // Physical (same WiFi)     → your PC's local IP e.g. "192.168.1.x"
         private const val FLASK_HOST = "10.0.2.2"
         private const val FLASK_PORT = 5000
         private const val BASE_URL   = "http://$FLASK_HOST:$FLASK_PORT"
@@ -30,7 +31,11 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         // video re-classifies (hits cache = instant response)
         private const val TITLE_RESET_MS = 5 * 60 * 1000L
 
-        // ── YouTube UI chrome — never a real video title ──────────────────────
+        // Debounce: wait this long after last scroll before classifying
+        // Prevents firing on every thumbnail while user scrolls
+        private const val DEBOUNCE_MS = 1500L
+
+        // ── YouTube UI chrome — never a real video title ──────────────────
         private val SKIP_TITLES = listOf(
             // Player controls
             "Shorts", "Sponsored", "Advertisement", "Ad ·", "Skip Ads",
@@ -39,8 +44,8 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             "Minimize", "Cast", "More options", "Hide controls",
             "Enter fullscreen", "Rewind", "Fast forward", "Navigate up",
             "Voice search", "Choose Premium",
-            // ── Seen in Logcat 2026-03-15 ────────────────────────────────────
-            "More actions",            // ← was missing; kebab-menu button label
+            // Kebab / action menus
+            "More actions",
             "YouTube makes for you",
             "Drag to reorder",
             "Close Repeat",
@@ -62,9 +67,45 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             "Join",
             "Bell",
             "notifications",
+            // Timestamps & duration noise
+            "minutes, ",
+            "seconds",
+            "Go to channel",
+            // Feed / discovery noise
+            "Music for you",
+            "TikTok Lite",
+            "Top podcasts",
+            "Recommended",
+            "Continue watching",
+            "Up next",
+            "Playing next",
+            "Autoplay is",
+            "Pause autoplay",
+            "Mix -",
+            "Topic",
+            // Ad-related
+            "Why this ad",
+            "Stop seeing this ad",
+            "Visit advertiser",
+
+            "K views", "M views", "B views",
+            "months ago", "years ago", "days ago", "hours ago", "weeks ago",
+            "See #", "videos ...more", "...more",
+            "#GMA", "#ABS", "#News",
+
+            "Add a comment",
+            "@mention",
+            "comment or @",
+            "Reply",
+            "replies",
+            "Pinned comment",
+            "View all comments",
+            "Comments are turned off",
+            "Top comments",
+            "Newest first",
         )
 
-        // ── System/notification noise ──────────────────────────────────────────
+        // ── System/notification noise ─────────────────────────────────────
         private val SKIP_SYSTEM = listOf(
             "PTE. LTD", "Installed", "Open app", "App image",
             "Update", "Install", "Download", "Notification",
@@ -72,7 +113,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             "Battery", "Charging", "Wi-Fi", "Bluetooth",
         )
 
-        // ── Widget classes that never contain video titles ─────────────────────
+        // ── Widget classes that never contain video titles ────────────────
         private val SKIP_NODE_CLASSES = listOf(
             "android.widget.ImageButton",
             "android.widget.ImageView",
@@ -83,37 +124,34 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             "android.widget.RadioButton",
         )
 
-        // ── Looks like a channel handle: CamelCase, no spaces, no punctuation ──
-        // Matches: "RickAstleyYT", "MichaelJackson", "VEVOofficial"
-        // Does NOT match: "Michael Jackson - Billie Jean (Official Video)"
+        // ── Looks like a channel handle: CamelCase, no spaces/punctuation ─
         private val CHANNEL_HANDLE_RE = Regex("^[A-Z][a-zA-Z0-9]{4,40}$")
     }
 
     private val scope = CoroutineScope(Dispatchers.IO)
+
     private var lastSentTitle  = ""
     private var lastSentTimeMs = 0L
+    private var pendingTitle   = ""
+    private var lastEventTimeMs = 0L
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .build()
 
-    // ── Pattern 1: title before "views" count ─────────────────────────────────
-    // e.g. "Michael Jackson - Billie Jean (Official Video)\n1.2B views"
+    // Pattern 1: title before "views" count
     private val VIEWS_PATTERN = Pattern.compile(
         "([A-Z][^\\n]{10,150})\\s+[\\d.,]+[KMBkm]?\\s+views",
         Pattern.CASE_INSENSITIVE
     )
 
-    // ── Pattern 2: title before @ChannelName ──────────────────────────────────
-    // e.g. "Billie Jean (Official Video)\n@MichaelJackson"
+    // Pattern 2: title before @ChannelName
     private val AT_CHANNEL_PATTERN = Pattern.compile(
         "([A-Z][^\\n@]{10,150})\\s{1,4}@[\\w]{2,50}(?:\\s|$)"
     )
 
-    // ── Pattern 3: repeated title (minimized player) handled by extractRepeatedTitle()
-
-    // ── Pattern 4: direct URL video ID ───────────────────────────────────────
+    // Pattern 3: direct URL video ID
     private val URL_PATTERN = Pattern.compile("(?:v=|youtu\\.be/)([a-zA-Z0-9_-]{11})")
 
     override fun onServiceConnected() {
@@ -127,14 +165,17 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         val now = System.currentTimeMillis()
         if (lastSentTitle.isNotEmpty() && (now - lastSentTimeMs) > TITLE_RESET_MS) {
             println("[CF_SERVICE] ↺ Reset title memory after timeout")
-            lastSentTitle  = ""
-            lastSentTimeMs = 0L
+            lastSentTitle   = ""
+            lastSentTimeMs  = 0L
         }
 
         // Strategy 0: direct URL in event text (fastest path)
         val eventText = event.text?.joinToString(" ") ?: ""
         val urlMatch  = URL_PATTERN.matcher(eventText)
-        if (urlMatch.find()) { handleVideoId(urlMatch.group(1) ?: return); return }
+        if (urlMatch.find()) {
+            handleVideoId(urlMatch.group(1) ?: return)
+            return
+        }
 
         val root    = rootInActiveWindow ?: return
         val allText = collectAllNodeText(root)
@@ -142,7 +183,10 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
         // Strategy 1: direct URL in tree
         val urlInTree = URL_PATTERN.matcher(allText)
-        if (urlInTree.find()) { handleVideoId(urlInTree.group(1) ?: return); return }
+        if (urlInTree.find()) {
+            handleVideoId(urlInTree.group(1) ?: return)
+            return
+        }
 
         // Strategy 2: title before "views" — most accurate
         val viewsMatch = VIEWS_PATTERN.matcher(allText)
@@ -167,20 +211,17 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     /**
      * Filtered node text collector.
-     * Skips: known chrome widget classes, short clickable leaf nodes.
-     * Separates text with \n so line-anchored regex patterns work correctly.
+     * Skips known chrome widget classes and short clickable leaf nodes.
      */
     private fun collectAllNodeText(node: AccessibilityNodeInfo): String {
         val sb = StringBuilder()
         try {
             val className = node.className?.toString() ?: ""
 
-            // (a) Skip known non-title widget classes entirely
             val isSkippedClass = SKIP_NODE_CLASSES.any {
                 className.endsWith(it.substringAfterLast('.'))
             }
 
-            // (b) Skip short clickable leaf nodes (buttons, icon labels)
             val textLen      = node.text?.length ?: 0
             val isButtonLike = node.isClickable && textLen in 1..25 && node.childCount == 0
 
@@ -199,14 +240,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Gate-keeper: returns true only if the candidate is a real video title.
-     *
-     * Rules (in order of cost, cheapest first):
-     *  1. Length: 8–200 chars
-     *  2. Not in SKIP_TITLES / SKIP_SYSTEM
-     *  3. Not a channel handle (CamelCase, no spaces, no punctuation)
-     *  4. Must contain at least 2 words  ← NEW: blocks "Rick Astley", "MichaelJackson"
-     *  5. No 2+ uppercase abbreviations  (e.g. "PTE. LTD. SG")
+     * Gate-keeper: returns true only if candidate is a real video title.
      */
     private fun isCleanTitle(text: String): Boolean {
         // 1. Length gate
@@ -217,19 +251,15 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         if (SKIP_SYSTEM.any { text.contains(it, ignoreCase = true) }) return false
 
         // 3. Channel handle: CamelCase single token with no spaces or punctuation
-        //    e.g. "RickAstleyYT", "MichaelJackson", "VEVOofficial"
         if (CHANNEL_HANDLE_RE.matches(text.trim())) {
-            println("[CF_SERVICE] ⛔ Skipped channel handle: $text")
+//            println("[CF_SERVICE] ⛔ Skipped channel handle: $text")
             return false
         }
 
-        // 4. Must contain at least 2 whitespace-separated words.
-        //    Real titles: "Rick Astley – Never Gonna Give You Up" ✓
-        //    Channel names / single labels: "Rick Astley" ✗  "More actions" ✗
-        //    Exception: allow single-word titles with digits/symbols (e.g. "Minecraft: 1.21")
+        // 4. Must contain at least 2 words
         val wordCount = text.trim().split(Regex("\\s+")).size
         if (wordCount < 2) {
-            println("[CF_SERVICE] ⛔ Skipped single-word string: $text")
+//            println("[CF_SERVICE] ⛔ Skipped single-word string: $text")
             return false
         }
 
@@ -241,8 +271,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Scan-based repeated title detection for the minimized player,
-     * where the title node appears twice in the accessibility tree.
+     * Repeated title detection for the minimized player.
      */
     private fun extractRepeatedTitle(text: String): String? {
         val candidates = text
@@ -264,23 +293,41 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         return null
     }
 
+    /**
+     * Debounced dispatch — waits DEBOUNCE_MS after the last scroll event
+     * before sending the title to the backend. This prevents classifying
+     * every thumbnail the user scrolls past.
+     */
     private fun dispatchTitle(title: String) {
-        if (title.length < 8) return          // raised from 5 → 8 to match isCleanTitle
+        if (title.length < 8) return
         if (title == lastSentTitle) return
 
-        lastSentTitle  = title
-        lastSentTimeMs = System.currentTimeMillis()
-        println("[CF_SERVICE] ✓ Detected title: $title")
+        // Record this as the latest pending candidate
+        pendingTitle    = title
+        lastEventTimeMs = System.currentTimeMillis()
 
-        // Immediately show spinner in UI while backend classifies
-        broadcastResult(videoId = title, label = "Analyzing", score = 0f, cached = false)
-        scope.launch { classifyByTitle(title) }
+        scope.launch {
+            // Wait for scrolling to settle
+            delay(DEBOUNCE_MS)
+
+            // Only proceed if no newer title arrived during the wait
+            if (pendingTitle != title) return@launch
+            if ((System.currentTimeMillis() - lastEventTimeMs) < DEBOUNCE_MS) return@launch
+
+            lastSentTitle  = title
+            lastSentTimeMs = System.currentTimeMillis()
+            println("[CF_SERVICE] ✓ Detected title: $title")
+
+            // Show spinner in UI while backend classifies
+            broadcastResult(videoId = title, label = "Analyzing", score = 0f, cached = false)
+            classifyByTitle(title)
+        }
     }
 
     private fun handleVideoId(videoId: String) {
         if (videoId == lastSentTitle) return
-        lastSentTitle  = videoId
-        lastSentTimeMs = System.currentTimeMillis()
+        lastSentTitle   = videoId
+        lastSentTimeMs  = System.currentTimeMillis()
         broadcastResult(videoId = videoId, label = "Analyzing", score = 0f, cached = false)
         scope.launch {
             classifyByUrl(
@@ -308,7 +355,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     private fun classifyByUrl(videoId: String, videoUrl: String, thumbUrl: String) {
         try {
-            val body    = JSONObject().apply {
+            val body = JSONObject().apply {
                 put("video_url",     videoUrl)
                 put("thumbnail_url", thumbUrl)
             }
@@ -345,7 +392,9 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
         println("[CF_SERVICE] Interrupted")
-        lastSentTitle  = ""
-        lastSentTimeMs = 0L
+        lastSentTitle   = ""
+        lastSentTimeMs  = 0L
+        pendingTitle    = ""
+        lastEventTimeMs = 0L
     }
 }

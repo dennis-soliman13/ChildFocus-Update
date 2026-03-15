@@ -1,284 +1,177 @@
 package com.childfocus.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.childfocus.viewmodel.ClassifyState
-import com.childfocus.viewmodel.SafetyViewModel
 
-/**
- * SafetyModeScreen
- *
- * Shown when Safety Mode is ON.
- * Displays live monitoring status as ChildFocusAccessibilityService
- * automatically detects and classifies YouTube videos.
- *
- * Per thesis Figure 3: the user never pastes a URL —
- * the video_id is detected automatically from the YouTube player event.
- *
- * States:
- *   Idle      → "Waiting for video…"
- *   Analyzing → spinner + video ID
- *   Allowed   → green chip (Educational / Neutral)
- *   Blocked   → fullscreen red overlay with dismiss button
- *   Error     → yellow warning chip
- */
 @Composable
-fun SafetyModeScreen(viewModel: SafetyViewModel) {
-    val state by viewModel.classifyState.collectAsState()
+fun SafetyModeScreen(
+    classifyState: ClassifyState,
+    onTurnOff: () -> Unit,
+    onDismissBlock: () -> Unit
+) {
+    val bgGradient = Brush.verticalGradient(
+        colors = listOf(Color(0xFF0D1B2A), Color(0xFF0A2540))
+    )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-
-        // ── Main monitoring screen ──────────────────────────────────────────
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgGradient),
+        contentAlignment = Alignment.Center
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier.padding(32.dp)
         ) {
-            // Shield icon
-            Text("🛡️", fontSize = 56.sp)
 
-            Spacer(Modifier.height(16.dp))
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = "Protected",
+                tint = Color(0xFF4FC3F7),
+                modifier = Modifier.size(72.dp)
+            )
 
             Text(
-                text       = "Safety Mode Active",
-                fontSize   = 24.sp,
+                text = "PROTECTED",
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color      = MaterialTheme.colorScheme.primary,
+                color = Color(0xFF4FC3F7),
+                letterSpacing = 4.sp
             )
-
-            Spacer(Modifier.height(8.dp))
 
             Text(
-                text      = "ChildFocus is monitoring YouTube automatically.\nOpen YouTube to start watching.",
-                fontSize  = 14.sp,
-                color     = Color.Gray,
-                textAlign = TextAlign.Center,
+                text = "ChildFocus is actively monitoring\nYouTube for your child",
+                color = Color(0xFF90CAF9),
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // ── Status card ───────────────────────────────────────────────
-            when (val s = state) {
-                is ClassifyState.Idle -> {
-                    StatusChip(
-                        text  = "⏳  Waiting for video…",
-                        color = Color.Gray,
-                    )
-                }
+            // Status card
+            StatusCard(classifyState = classifyState, onDismissBlock = onDismissBlock)
 
-                is ClassifyState.Analyzing -> {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(
-                            modifier  = Modifier.size(32.dp),
-                            strokeWidth = 3.dp,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        StatusChip(
-                            text  = "🔍  Analyzing  ${s.videoId}",
-                            color = Color(0xFFFFA000),
-                        )
-                    }
-                }
+            Spacer(modifier = Modifier.height(16.dp))
 
-                is ClassifyState.Allowed -> {
-                    val emoji = if (s.label == "Educational") "✅" else "🟡"
-                    StatusChip(
-                        text  = "$emoji  ${s.label}  •  %.3f${if (s.cached) "  (cached)" else ""}".format(s.score),
-                        color = if (s.label == "Educational") Color(0xFF388E3C) else Color(0xFFF57C00),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text     = "Video ID: ${s.videoId}",
-                        fontSize = 11.sp,
-                        color    = Color.Gray,
-                    )
-                }
-
-                is ClassifyState.Error -> {
-                    StatusChip(
-                        text  = "⚠️  Classification failed — check Flask server",
-                        color = Color(0xFFD32F2F),
-                    )
-                }
-
-                // Blocked state is handled below as a fullscreen overlay
-                is ClassifyState.Blocked -> {
-                    StatusChip(
-                        text  = "🚫  Overstimulating content detected",
-                        color = Color(0xFFD32F2F),
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(40.dp))
-
-            // ── Divider + info ────────────────────────────────────────────
-            Divider(color = Color.LightGray)
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text      = "How it works",
-                fontSize  = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(8.dp))
-            InfoRow("🎬", "Open YouTube and play any video")
-            InfoRow("🔍", "ChildFocus detects the video automatically")
-            InfoRow("🤖", "AI scores the content (FCR + CSV + ATT + NB)")
-            InfoRow("🚫", "Overstimulating videos are blocked instantly")
-            InfoRow("⚡", "Already-seen videos load from cache (<1s)")
-
-            Spacer(Modifier.height(32.dp))
-
-            // ── Turn off button ───────────────────────────────────────────
+            // Turn off button
             OutlinedButton(
-                onClick  = { viewModel.toggleSafetyMode() },
-                modifier = Modifier.fillMaxWidth(),
-                border   = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                onClick = onTurnOff,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(26.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color(0xFFEF9A9A)
+                )
             ) {
+                Icon(
+                    imageVector = Icons.Default.LockOpen,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text  = "Turn Off Safety Mode",
-                    color = MaterialTheme.colorScheme.error,
+                    text = "Turn Off Safety Mode",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
                 )
             }
         }
+    }
+}
 
-        // ── Blocked overlay (fullscreen — sits on top of everything) ───────
-        val blocked = state as? ClassifyState.Blocked
-        if (blocked != null) {
-            Box(
-                modifier          = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xEE000000)),
-                contentAlignment  = Alignment.Center,
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth(0.88f)
-                        .wrapContentHeight(),
-                    colors   = CardDefaults.cardColors(
-                        containerColor = Color(0xFFB71C1C),
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                ) {
-                    Column(
-                        modifier              = Modifier.padding(28.dp),
-                        horizontalAlignment   = Alignment.CenterHorizontally,
-                    ) {
-                        Text("🚫", fontSize = 52.sp)
+@Composable
+private fun StatusCard(
+    classifyState: ClassifyState,
+    onDismissBlock: () -> Unit
+) {
+    val (bgColor, textColor, title, subtitle) = when (classifyState) {
+        is ClassifyState.Idle -> StatusInfo(
+            bg = Color(0xFF1E3A5F),
+            text = Color(0xFF90CAF9),
+            title = "Watching...",
+            sub = "Waiting for YouTube activity"
+        )
+        is ClassifyState.Analyzing -> StatusInfo(
+            bg = Color(0xFF1E3A5F),
+            text = Color(0xFFFFD54F),
+            title = "Analyzing",
+            sub = classifyState.videoId.take(60)
+        )
+        is ClassifyState.Allowed -> StatusInfo(
+            bg = Color(0xFF1B3A2A),
+            text = Color(0xFF81C784),
+            title = "✓ ${classifyState.label}",
+            sub = "Score: ${"%.2f".format(classifyState.score)} • ${if (classifyState.cached) "Cached" else "Live"}"
+        )
+        is ClassifyState.Blocked -> StatusInfo(
+            bg = Color(0xFF3E1A1A),
+            text = Color(0xFFEF9A9A),
+            title = "⛔ Overstimulating Content Blocked",
+            sub = "Score: ${"%.2f".format(classifyState.score)}"
+        )
+        is ClassifyState.Error -> StatusInfo(
+            bg = Color(0xFF2E2A1A),
+            text = Color(0xFFFFCC02),
+            title = "⚠ Could not classify",
+            sub = classifyState.videoId.take(60)
+        )
+    }
 
-                        Spacer(Modifier.height(12.dp))
-
-                        Text(
-                            text       = "Content Blocked",
-                            fontSize   = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color      = Color.White,
-                        )
-
-                        Spacer(Modifier.height(8.dp))
-
-                        Text(
-                            text      = "This video was classified as Overstimulating\nand has been blocked to protect the child.",
-                            fontSize  = 14.sp,
-                            color     = Color.White.copy(alpha = 0.85f),
-                            textAlign = TextAlign.Center,
-                        )
-
-                        Spacer(Modifier.height(16.dp))
-
-                        // Score breakdown
-                        Surface(
-                            color  = Color.White.copy(alpha = 0.15f),
-                            shape  = MaterialTheme.shapes.small,
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                BlockedScoreRow("Video ID",     blocked.videoId)
-                                BlockedScoreRow("OIR Score",    "%.3f".format(blocked.score))
-                                BlockedScoreRow("Label",        blocked.label)
-                                BlockedScoreRow("Source",       if (blocked.cached) "Cache" else "Live analysis")
-                            }
-                        }
-
-                        Spacer(Modifier.height(20.dp))
-
-                        // Dismiss — parent override
-                        Button(
-                            onClick = { viewModel.dismissBlock() },
-                            colors  = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                text  = "Dismiss (Parent Override)",
-                                color = Color(0xFFB71C1C),
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = bgColor
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = title,
+                color = textColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center
+            )
+            if (subtitle.isNotEmpty()) {
+                Text(
+                    text = subtitle,
+                    color = textColor.copy(alpha = 0.8f),
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+            if (classifyState is ClassifyState.Blocked) {
+                Spacer(modifier = Modifier.height(4.dp))
+                TextButton(onClick = onDismissBlock) {
+                    Text("Dismiss", color = Color(0xFFEF9A9A))
                 }
             }
         }
     }
 }
 
-// ── Small composable helpers ──────────────────────────────────────────────────
-
-@Composable
-private fun StatusChip(text: String, color: Color) {
-    Surface(
-        shape  = MaterialTheme.shapes.medium,
-        color  = color.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, color),
-    ) {
-        Text(
-            text     = text,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-            color    = color,
-            fontSize = 13.sp,
-        )
-    }
-}
-
-@Composable
-private fun InfoRow(emoji: String, text: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(emoji, fontSize = 16.sp)
-        Spacer(Modifier.width(10.dp))
-        Text(text, fontSize = 13.sp, color = Color.DarkGray)
-    }
-}
-
-@Composable
-private fun BlockedScoreRow(label: String, value: String) {
-    Row(
-        modifier              = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
-        Text(value, fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Medium)
-    }
-}
+private data class StatusInfo(
+    val bg: Color,
+    val text: Color,
+    val title: String,
+    val sub: String
+)

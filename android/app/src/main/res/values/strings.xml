@@ -1,4 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ChildFocus</string>
-    <string name="accessibility_description">ChildFocus monitors YouTube to protect children from overstimulating content.</string>
+    <string name="accessibility_description">ChildFocus monitors YouTube to detect and block overstimulating video content for children.</string>
 </resources>
