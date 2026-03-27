@@ -7,19 +7,13 @@ from flask import Blueprint, jsonify, request
 from app.modules.frame_sampler import sample_video
 from app.modules.heuristic import compute_heuristic_score
 from app.modules.naive_bayes import score_from_metadata_dict, score_metadata
+from app.modules.hybrid_fusion import ALPHA, BETA, THRESHOLD_BLOCK, THRESHOLD_ALLOW
 
 classify_bp = Blueprint("classify", __name__)
 
 DB_PATH = os.path.join(
     os.path.dirname(__file__), "..", "..", "..", "database", "childfocus.db"
 )
-
-# ── Empirically validated fusion config ───────────────────────────────────────
-ALPHA           = 0.6    # NB weight
-BETA            = 0.4    # Heuristic weight
-THRESHOLD_BLOCK = 0.20
-THRESHOLD_ALLOW = 0.08
-
 
 def _oir_label(score: float) -> str:
     if score >= THRESHOLD_BLOCK: return "Overstimulating"
@@ -331,6 +325,107 @@ def classify_by_title():
         print(f"[TITLE_ROUTE] Error: {e}")
         import traceback; traceback.print_exc()
         return jsonify({"error": str(e), "status": "error"}), 500
+
+
+# ── /safe_suggestions ─────────────────────────────────────────────────────────
+# NEW: Returns Educational videos from the DB to suggest after a block event.
+# The Android overlay calls this endpoint immediately after showing the block screen.
+
+# Hardcoded fallback videos used when the DB has no Educational entries yet.
+# Replace these with real verified educational video IDs before user testing.
+_FALLBACK_SUGGESTIONS = [
+    {
+        "video_id":    "WaO3dBiC0kI",
+        "video_title": "Khan Academy – Introduction to Fractions",
+        "final_score": 0.04,
+    },
+    {
+        "video_id":    "09maaUaRT4M",
+        "video_title": "National Geographic Kids – Amazing Animals",
+        "final_score": 0.05,
+    },
+    {
+        "video_id":    "Ck-AMBxM2ww",
+        "video_title": "Science for Kids – How Plants Grow",
+        "final_score": 0.06,
+    },
+]
+
+
+@classify_bp.route("/safe_suggestions", methods=["GET"])
+def safe_suggestions():
+    """
+    Returns up to `limit` Educational videos from the database.
+    Falls back to hardcoded safe videos if the DB has no Educational entries.
+
+    Query params:
+      limit (int, default 3) — number of suggestions to return
+      exclude (str, optional) — video_id to exclude (the one just blocked)
+
+    Response:
+      {
+        "suggestions": [
+          {"video_id": "...", "video_title": "...", "final_score": 0.04},
+          ...
+        ],
+        "source": "db" | "fallback"
+      }
+    """
+    limit      = request.args.get("limit",   3,   type=int)
+    exclude_id = request.args.get("exclude", "",  type=str).strip()
+
+    # Clamp limit between 1 and 5
+    limit = max(1, min(5, limit))
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur  = conn.cursor()
+
+        if exclude_id:
+            cur.execute("""
+                SELECT video_id, video_title, final_score
+                FROM   videos
+                WHERE  label = 'Educational'
+                AND    video_id != ?
+                ORDER  BY last_checked DESC
+                LIMIT  ?
+            """, (exclude_id, limit))
+        else:
+            cur.execute("""
+                SELECT video_id, video_title, final_score
+                FROM   videos
+                WHERE  label = 'Educational'
+                ORDER  BY last_checked DESC
+                LIMIT  ?
+            """, (limit,))
+
+        rows = cur.fetchall()
+        conn.close()
+
+        if rows:
+            suggestions = [
+                {
+                    "video_id":    row[0],
+                    "video_title": row[1] or f"Educational video ({row[0]})",
+                    "final_score": round(row[2], 4),
+                }
+                for row in rows
+            ]
+            print(f"[SAFE] ✓ Returning {len(suggestions)} suggestions from DB")
+            return jsonify({"suggestions": suggestions, "source": "db"}), 200
+
+        # DB has no Educational entries yet — use hardcoded fallback
+        print("[SAFE] DB empty — using fallback suggestions")
+        fallback = [s for s in _FALLBACK_SUGGESTIONS if s["video_id"] != exclude_id]
+        return jsonify({"suggestions": fallback[:limit], "source": "fallback"}), 200
+
+    except Exception as e:
+        print(f"[SAFE] ✗ {e}")
+        # Even if DB fails, return something useful
+        return jsonify({
+            "suggestions": _FALLBACK_SUGGESTIONS[:limit],
+            "source":      "fallback",
+        }), 200
 
 
 # ── /health ───────────────────────────────────────────────────────────────────

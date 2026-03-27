@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    res/layout/overlay_blocked.xml
+    Shown by ChildFocusAccessibilityService on top of YouTube when a video
+    is classified as Overstimulating.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="28dp"
+    android:background="#EE000000"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Block icon (text-based shield) -->
+    <TextView
+        android:text="🛡"
+        android:textSize="48sp"
+        android:gravity="center"
+        android:layout_marginBottom="12dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <!-- Main heading -->
+    <TextView
+        android:id="@+id/tvBlockTitle"
+        android:text="Content Blocked"
+        android:textSize="24sp"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <!-- Reason -->
+    <TextView
+        android:id="@+id/tvBlockReason"
+        android:text="This video was detected as overstimulating."
+        android:textSize="14sp"
+        android:textColor="#CCFFFFFF"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <!-- OIR Score (shown for transparency) -->
+    <TextView
+        android:id="@+id/tvScore"
+        android:text=""
+        android:textSize="12sp"
+        android:textColor="#88FFFFFF"
+        android:gravity="center"
+        android:layout_marginTop="4dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Safe suggestions heading -->
+    <TextView
+        android:text="Watch something better instead:"
+        android:textSize="13sp"
+        android:textColor="#BBFFFFFF"
+        android:gravity="center"
+        android:layout_marginBottom="12dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <!-- Suggestions row — cards added programmatically -->
+    <LinearLayout
+        android:id="@+id/llSuggestions"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <!-- Loading spinner shown while fetching suggestions -->
+    <ProgressBar
+        android:id="@+id/pbSuggestions"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:indeterminateTint="#FFFFFF"
+        android:visibility="visible"
+        android:layout_marginTop="8dp"/>
+
+    <!-- Dismiss button -->
+    <Button
+        android:id="@+id/btnDismiss"
+        android:text="Dismiss"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#44FFFFFF"
+        android:layout_marginTop="28dp"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+</LinearLayout>

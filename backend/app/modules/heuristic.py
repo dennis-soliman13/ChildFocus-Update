@@ -2,20 +2,14 @@
 ChildFocus - Heuristic Analysis Module
 backend/app/modules/heuristic.py
 
-FIX: compute_heuristic_score() now accepts the pre-sampled dict from
-     frame_sampler.sample_video() instead of calling sample_video() again.
-     classify.py already calls sample_video() and passes the result here —
-     calling it a second time caused: TypeError: expected string, got dict.
+This module supports two call styles for compatibility across the codebase/tests:
+  1) compute_heuristic_score(video_id_or_url: str, thumbnail_url: str)
+     - Used by unit tests and by modules that want heuristic-only scoring.
+  2) compute_heuristic_score(sample: dict)
+     - Used by routes that already called frame_sampler.sample_video().
 """
 
-from app.modules.frame_sampler import (
-    compute_fcr,
-    compute_csv,
-    compute_att,
-    compute_thumbnail_intensity,
-    extract_frames,
-    fetch_video,
-)
+from app.modules.frame_sampler import sample_video  # re-exported for tests to patch
 
 # ── Heuristic weights (from thesis) ───────────────────────────────────────────
 W_FCR   = 0.35
@@ -28,7 +22,7 @@ THRESHOLD_HIGH = 0.75   # Overstimulating
 THRESHOLD_LOW  = 0.35   # Safe / Educational
 
 
-def compute_heuristic_score(sample: dict) -> dict:
+def _compute_from_sample(sample: dict) -> dict:
     """
     Compute the final heuristic score from a pre-sampled video dict.
 
@@ -89,6 +83,52 @@ def compute_heuristic_score(sample: dict) -> dict:
     }
 
     return {"score_h": score_h, "details": details}
+
+
+def compute_heuristic_score(video_id_or_sample, thumbnail_url: str = "") -> dict:
+    """
+    Compatibility wrapper.
+
+    - If passed a dict, it is treated as the output of sample_video().
+    - If passed a string, sample_video() is called (tests patch this call).
+
+    Returns a dict that contains the keys expected by tests and by
+    hybrid_fusion/classify routes.
+    """
+    try:
+        if isinstance(video_id_or_sample, dict):
+            sample = video_id_or_sample
+        else:
+            # Treat as a video identifier/url. Unit tests patch sample_video().
+            sample = sample_video(str(video_id_or_sample), thumbnail_url=thumbnail_url)
+
+        status = sample.get("status", "error")
+        if status not in ("success", "thumbnail_only", "thumbnail-only"):
+            # Preserve a clean failure shape for callers/tests.
+            return {
+                "status": status,
+                "message": sample.get("message", sample.get("reason", "unavailable")),
+                "video_id": sample.get("video_id", str(video_id_or_sample)),
+            }
+
+        base = _compute_from_sample(sample)
+        details = base.get("details", {})
+
+        # Provide the flat keys expected by tests (and used by hybrid_fusion).
+        return {
+            "status": "success",
+            "score_h": float(base["score_h"]),
+            "segments": details.get("segments", []),
+            "thumbnail": float(details.get("thumbnail_intensity", 0.0)),
+            "video_id": sample.get("video_id", str(video_id_or_sample)),
+            "video_title": sample.get("video_title", ""),
+            "video_duration": float(sample.get("video_duration_sec", 0.0) or 0.0),
+            "runtime_seconds": float(sample.get("runtime_seconds", 0.0) or 0.0),
+            # Keep the detailed structure for classify.py logging.
+            "details": details,
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 def compute_segment_score(fcr: float, csv: float, att: float) -> float:

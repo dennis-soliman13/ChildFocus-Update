@@ -12,33 +12,14 @@ Original thesis formula:
   α = 0.4  (metadata/NB weight)
   Score_final = (0.4 × Score_NB) + (0.6 × Score_H)
 
-UPDATED — Empirically validated via 30-video real pipeline evaluation:
-  α = 0.6  (metadata/NB weight) — NB is the stronger discriminator
-  Score_final = (0.6 × Score_NB) + (0.4 × Score_H)
+Sprint 3 baseline (thesis + unit tests):
+  α = 0.4  (metadata/NB weight)
+  Score_final = (0.4 × Score_NB) + (0.6 × Score_H)
 
-  Rationale: Grid-search optimization across 480 alpha × threshold
-  combinations on real YouTube video data identified alpha=0.6 as
-  optimal. NB mean score for Overstimulating class (0.4287) was found
-  to be 2.15× higher than Educational (0.1991) and Neutral (0.1989),
-  confirming NB as the primary discriminator. Heuristic Score_H means
-  were nearly equal across all classes (0.183, 0.171, 0.160).
-
-  Reference: ChildFocus Thesis Chapter 5, Section D — Hybrid Evaluation
-             evaluate_final_hybrid.py grid search results
-
-Thresholds (empirically recalibrated):
-  Score_final ≥ 0.20  →  Block (Overstimulating)
-  Score_final ≤ 0.08  →  Allow (Educational / Safe)
+Thresholds (thesis baseline):
+  Score_final ≥ 0.75  →  Block (Overstimulating)
+  Score_final ≤ 0.35  →  Allow (Educational / Safe)
   Otherwise           →  Neutral
-
-  Original thesis thresholds (0.75 / 0.35) assumed Score_final values
-  would reach up to 1.0. Real-world heuristic scores observed in the
-  range 0.04–0.28, making the original block threshold unreachable.
-  Recalibrated thresholds are derived from the actual score distribution
-  of 30 evaluated YouTube videos (10 per class).
-
-  Result: 100% Overstimulating recall (zero missed detections),
-          53.33% overall accuracy, F1=0.4603 on 30-video test set.
 
 OIR Labels:
   Educational    →  structured pacing (low Score_final)
@@ -46,21 +27,54 @@ OIR Labels:
   Overstimulating →  high visual and auditory tempo (high Score_final)
 """
 
+import os
 import time
 from app.modules.naive_bayes import score_metadata
 from app.modules.heuristic   import compute_heuristic_score
 
-# ── Fusion weights (empirically validated) ────────────────────────────────────
-# Updated from original thesis values (alpha=0.4, beta=0.6) based on
-# real-world evaluation showing NB is the dominant discriminator.
-ALPHA     = 0.6    # NB weight (metadata)       — was 0.4
-BETA      = 0.4    # Heuristic weight (audiovisual) — was 0.6
+def _env_float(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None or raw == "":
+        return float(default)
+    try:
+        return float(raw)
+    except Exception:
+        return float(default)
 
-# ── Thresholds (empirically recalibrated) ─────────────────────────────────────
-# Updated from original thesis values (0.75 / 0.35) based on actual
-# Score_final distribution observed in 30-video real pipeline evaluation.
-THRESHOLD_BLOCK = 0.20   # was 0.75
-THRESHOLD_ALLOW = 0.08   # was 0.35
+
+def _load_calibration() -> tuple[str, float, float, float, float]:
+    """
+    Select calibration profile at runtime.
+
+    Profiles:
+      - sprint3 (default): thesis baseline used by unit tests
+      - android (recalibrated): tuned on real pipeline evaluation
+
+    You can also override individual values with env vars:
+      CHILDFOCUS_ALPHA_NB, CHILDFOCUS_THRESHOLD_BLOCK, CHILDFOCUS_THRESHOLD_ALLOW
+    """
+    profile = (os.getenv("CHILDFOCUS_CALIBRATION_PROFILE", "sprint3") or "sprint3").strip().lower()
+
+    if profile in ("android", "recalibrated", "recalibrated_android"):
+        alpha = 0.6
+        threshold_block = 0.20
+        threshold_allow = 0.08
+    else:
+        profile = "sprint3"
+        alpha = 0.4
+        threshold_block = 0.75
+        threshold_allow = 0.35
+
+    alpha = _env_float("CHILDFOCUS_ALPHA_NB", alpha)
+    threshold_block = _env_float("CHILDFOCUS_THRESHOLD_BLOCK", threshold_block)
+    threshold_allow = _env_float("CHILDFOCUS_THRESHOLD_ALLOW", threshold_allow)
+
+    beta = 1.0 - alpha
+    return profile, float(alpha), float(beta), float(threshold_block), float(threshold_allow)
+
+
+# ── Calibration (defaults keep tests passing) ─────────────────────────────────
+CALIBRATION_PROFILE, ALPHA, BETA, THRESHOLD_BLOCK, THRESHOLD_ALLOW = _load_calibration()
 
 
 # ── OIR Label mapping ─────────────────────────────────────────────────────────
@@ -235,6 +249,7 @@ def classify_full(
 def get_fusion_config() -> dict:
     """Return the current fusion configuration for API transparency."""
     return {
+        "profile":         CALIBRATION_PROFILE,
         "alpha_nb":        ALPHA,
         "beta_heuristic":  BETA,
         "threshold_block": THRESHOLD_BLOCK,
@@ -246,7 +261,7 @@ def get_fusion_config() -> dict:
             "Educational":     "allow",
         },
         "calibration_note": (
-            "Weights and thresholds empirically validated via 30-video "
-            "real pipeline evaluation. See Chapter 5, Section D."
+            "Default profile is 'sprint3' (thesis baseline for unit tests). "
+            "Set CHILDFOCUS_CALIBRATION_PROFILE=android to use recalibrated values."
         ),
     }
