@@ -124,7 +124,9 @@ def _check_cache(video_id: str):
         return None
 
 
-# ── /classify_fast ────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# /classify_fast
+# ══════════════════════════════════════════════════════════════════════════════
 
 @classify_bp.route("/classify_fast", methods=["POST"])
 def classify_fast():
@@ -146,7 +148,9 @@ def classify_fast():
         return jsonify({"error": str(e), "status": "error"}), 500
 
 
-# ── /classify_full ────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# /classify_full
+# ══════════════════════════════════════════════════════════════════════════════
 
 @classify_bp.route("/classify_full", methods=["POST"])
 def classify_full():
@@ -158,7 +162,7 @@ def classify_full():
       2. Heuristic   — audiovisual analysis (FCR, CSV, ATT, thumbnail)
 
     Fusion: Score_final = (0.6 × Score_NB) + (0.4 × Score_H)
-    Thresholds: Block >= 0.20, Allow <= 0.08
+    Thresholds: Block >= 0.75, Allow <= 0.35
 
     Fallback chain inside sample_video():
       Normal download
@@ -227,7 +231,7 @@ def classify_full():
         predicted_label = nb_obj.predicted_label
 
         # ── Hybrid fusion ─────────────────────────────────────────────────────
-        # Score_final = (0.6 × Score_NB) + (0.4 × Score_H)
+        # Score_final = (0.4 × Score_NB) + (0.6 × Score_H)
         score_final = round((ALPHA * score_nb) + (BETA * score_h), 4)
         oir_label   = _oir_label(score_final)
         action      = "block" if oir_label == "Overstimulating" else "allow"
@@ -270,7 +274,9 @@ def classify_full():
         return jsonify({"error": str(e), "status": "error"}), 500
 
 
-# ── /classify_by_title ────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# /classify_by_title
+# ══════════════════════════════════════════════════════════════════════════════
 
 @classify_bp.route("/classify_by_title", methods=["POST"])
 def classify_by_title():
@@ -305,6 +311,7 @@ def classify_by_title():
             label, final_score, last_checked = cached
             return jsonify({
                 "video_id":     video_id,
+                "video_title":  title,  # ← Return the detected title
                 "oir_label":    label,
                 "score_final":  final_score,
                 "last_checked": last_checked,
@@ -327,35 +334,14 @@ def classify_by_title():
         return jsonify({"error": str(e), "status": "error"}), 500
 
 
-# ── /safe_suggestions ─────────────────────────────────────────────────────────
-# NEW: Returns Educational videos from the DB to suggest after a block event.
-# The Android overlay calls this endpoint immediately after showing the block screen.
-
-# Hardcoded fallback videos used when the DB has no Educational entries yet.
-# Replace these with real verified educational video IDs before user testing.
-_FALLBACK_SUGGESTIONS = [
-    {
-        "video_id":    "WaO3dBiC0kI",
-        "video_title": "Khan Academy – Introduction to Fractions",
-        "final_score": 0.04,
-    },
-    {
-        "video_id":    "09maaUaRT4M",
-        "video_title": "National Geographic Kids – Amazing Animals",
-        "final_score": 0.05,
-    },
-    {
-        "video_id":    "Ck-AMBxM2ww",
-        "video_title": "Science for Kids – How Plants Grow",
-        "final_score": 0.06,
-    },
-]
-
+# ══════════════════════════════════════════════════════════════════════════════
+# /safe_suggestions — KEEP THIS ONE ONLY
+# ══════════════════════════════════════════════════════════════════════════════
 
 @classify_bp.route("/safe_suggestions", methods=["GET"])
 def safe_suggestions():
     """
-    Returns up to `limit` Educational videos from the database.
+    Returns up to `limit` Educational videos from the DB.
     Falls back to hardcoded safe videos if the DB has no Educational entries.
 
     Query params:
@@ -379,6 +365,7 @@ def safe_suggestions():
 
     try:
         conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row  # ← Makes rows dict-like
         cur  = conn.cursor()
 
         if exclude_id:
@@ -405,9 +392,9 @@ def safe_suggestions():
         if rows:
             suggestions = [
                 {
-                    "video_id":    row[0],
-                    "video_title": row[1] or f"Educational video ({row[0]})",
-                    "final_score": round(row[2], 4),
+                    "video_id":    row["video_id"],
+                    "video_title": row["video_title"] or f"Educational video ({row['video_id']})",
+                    "final_score": round(row["final_score"], 4),
                 }
                 for row in rows
             ]
@@ -416,19 +403,38 @@ def safe_suggestions():
 
         # DB has no Educational entries yet — use hardcoded fallback
         print("[SAFE] DB empty — using fallback suggestions")
-        fallback = [s for s in _FALLBACK_SUGGESTIONS if s["video_id"] != exclude_id]
+        fallback = [
+            {
+                "video_id":    "WaO3dBiC0kI",
+                "video_title": "Khan Academy – Introduction to Fractions",
+                "final_score": 0.04,
+            },
+            {
+                "video_id":    "09maaUaRT4M",
+                "video_title": "National Geographic Kids – Amazing Animals",
+                "final_score": 0.05,
+            },
+            {
+                "video_id":    "Ck-AMBxM2ww",
+                "video_title": "Science for Kids – How Plants Grow",
+                "final_score": 0.06,
+            },
+        ]
         return jsonify({"suggestions": fallback[:limit], "source": "fallback"}), 200
 
     except Exception as e:
         print(f"[SAFE] ✗ {e}")
         # Even if DB fails, return something useful
-        return jsonify({
-            "suggestions": _FALLBACK_SUGGESTIONS[:limit],
-            "source":      "fallback",
-        }), 200
+        fallback = [
+            {"video_id": "WaO3dBiC0kI", "video_title": "Khan Academy – Fractions", "final_score": 0.04},
+            {"video_id": "09maaUaRT4M", "video_title": "Nat Geo Kids – Animals",   "final_score": 0.05},
+        ]
+        return jsonify({"suggestions": fallback[:limit], "source": "fallback"}), 200
 
 
-# ── /health ───────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# /health
+# ══════════════════════════════════════════════════════════════════════════════
 
 @classify_bp.route("/health", methods=["GET"])
 def health():

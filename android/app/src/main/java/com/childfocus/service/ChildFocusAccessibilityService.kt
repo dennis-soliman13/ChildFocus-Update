@@ -1,4 +1,5 @@
 package com.childfocus.service
+import com.childfocus.R
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
@@ -17,72 +18,53 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import android.view.LayoutInflater
+import android.view.View
+import android.view.WindowManager
+import android.graphics.PixelFormat
+import android.widget.Button
+import android.widget.TextView
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+
 
 /**
  * ChildFocusAccessibilityService
  *
  * VIDEO ID EXTRACTION — FIX LOG
  * ─────────────────────────────
- * Bug: Shorts titled "You Grow Girl!" returned ID "_mtQ9AEFn9Q" which mapped to a
- *      completely different video on YouTube.
- *
- * Root Cause 1 — Title-based strategies (2/3/4) called /classify_by_title, which does a
- *   YouTube search (`ytsearch1:{title}`) and returns the first search result. That result
- *   is NOT guaranteed to be the video currently playing. A different video with a
- *   similar title (or simply the top result for that query) gets classified instead.
- *
- * Root Cause 2 — Strategy 1 scanned the ENTIRE accessibility tree text using
- *   collectAllNodeText(root), which includes recommendation card URLs. The first URL
- *   match in the concatenated string could belong to a recommendation, not the
- *   currently playing video.
- *
- * Fix 1 — Strategy 0b (NEW): Check event.source node before scanning the full tree.
- *   The source is the specific view that fired the accessibility event — it is almost
- *   always in the video player area, not in recommendation cards.
- *
- * Fix 2 — Strategy 1: extractPlayerVideoId() now scans the full tree but prefers
- *   URL matches that appear close to "views" text in the same block. The playing
- *   video area shows "X views · Y ago" while recommendation cards show their own
- *   view counts further away from their URL nodes.
- *
- * Fix 3 — Strategy 2 (Shorts): Changed to doDispatchTitleFast() → /classify_fast.
- *   Shorts titles are reliably extracted by extractShortsTitle(), but there is no
- *   Shorts URL in the accessibility tree (Shorts uses a swipe feed, not watch?v=).
- *   classifyFastByTitle() sends just the title to /classify_fast (NB-only).
- *   No YouTube search, no wrong video ID.
- *
- * Fix 4 — Strategies 3/4 (regular video title): classifyByTitle() now verifies the
- *   returned video_title against the detected title using Jaccard word-overlap
- *   similarity. If similarity < TITLE_SIMILARITY_THRESHOLD (0.35), the YouTube search
- *   returned the wrong video and the result is discarded. classifyFastByTitle() is
- *   called as the fallback (NB-only on the original detected title).
+ * Fix 1 — Strategy 0b: Check event.source before scanning full tree.
+ * Fix 2 — Strategy 1: extractPlayerVideoId() prefers view-count-correlated URLs.
+ * Fix 3 — Strategy 2 (Shorts): doDispatchTitleFast → /classify_fast (NB-only).
+ * Fix 4 — Strategies 3/4: Jaccard similarity verification on /classify_by_title.
+ * Fix 5 — normalizeTitle() dedup: strips " | channel" and " - subtitle" suffixes
+ *          so the same video detected at different title lengths maps to the same
+ *          lastSentTitle entry and is classified only once.
+ * Fix 6 — Early lock: lastSentTitle is now set BEFORE delay() in both workers.
+ *          Root cause of triple-classification: YouTube fires the full player title
+ *          ("Title - Subtitle | Channel") during the 1500ms debounce window. At
+ *          that point lastSentTitle was still empty, so the normalize check passed
+ *          and a second job was started. Setting lastSentTitle = normalizeTitle(title)
+ *          before delay() closes that race window.
  */
 class ChildFocusAccessibilityService : AccessibilityService() {
 
     companion object {
-        // ── Change this ONE line to switch targets ────────────────────────
-        // Emulator (Pixel AVD)     → "10.0.2.2"
-        // Physical (same WiFi)     → your PC's local IP e.g. "192.168.1.x"
-        private const val FLASK_HOST = "192.168.1.21"
+        private const val FLASK_HOST = "192.168.100.9"
         private const val FLASK_PORT = 5000
-        private const val BASE_URL   = "http://$FLASK_HOST:$FLASK_PORT"
+        private const val BASE_URL = "http://$FLASK_HOST:$FLASK_PORT"
 
         private const val TITLE_RESET_MS = 5 * 60 * 1000L
-        private const val DEBOUNCE_MS    = 1500L
+        private const val DEBOUNCE_MS = 1500L
 
-        // ── Priority levels ───────────────────────────────────────────────
-        // PLAYING = direct video ID from URL — most accurate, highest priority
-        // ACTIVE  = title detected next to view count while video is playing
         private const val PRIORITY_PLAYING = 3
-        private const val PRIORITY_ACTIVE  = 2
+        private const val PRIORITY_ACTIVE = 2
 
-        // ── Title similarity threshold for verify-then-classify ──────────
-        // If the title returned by /classify_by_title has less than this
-        // word-overlap ratio with the detected title, the search returned
-        // the wrong video. Fall back to /classify_fast (NB-only).
         private const val TITLE_SIMILARITY_THRESHOLD = 0.35
 
-        // ── UI strings that are never real video titles ───────────────────
         private val SKIP_TITLES = listOf(
             // Player controls
             "Shorts", "Sponsored", "Advertisement", "Ad ·", "Skip Ads",
@@ -122,6 +104,11 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             "See more videos using this sound", "using this sound",
             "Original audio", "Original sound", "Collaboration channels",
             "View product", "Shop now", "Swipe up", "Add yours", "Remix this",
+            // Live stream overlays on Shorts thumbnails
+            "Tap to watch live", "Tap to watch", "Watch live",
+            "New content available",
+            // Shorts shelf labels — "play Short" (without s) bypasses the "Shorts" check
+            "play Short", "play short",
             // Music indicators
             "(Official", "- Topic", "♪", "♫", "🎵", "🎶",
             // YouTube Premium popups
@@ -144,43 +131,55 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    // ── Priority Queue ────────────────────────────────────────────────────────
-    @Volatile private var currentJob: Job = Job().also { it.cancel() }
-    @Volatile private var currentPriority = 0
-    @Volatile private var currentTarget   = ""
+    @Volatile
+    private var currentJob: Job = Job().also { it.cancel() }
+    @Volatile
+    private var currentPriority = 0
+    @Volatile
+    private var currentTarget = ""
 
-    private var lastSentTitle   = ""
-    private var lastSentTimeMs  = 0L
-    private var pendingTitle    = ""
+    // Stores the NORMALIZED title of the last video that entered the pipeline.
+    // Set BEFORE the debounce delay (early lock) so duplicates during the 1500ms
+    // window are blocked. Raw titles are never stored here — always normalized.
+    private var lastSentTitle = ""
+    private var lastSentTimeMs = 0L
+    private var pendingTitle = ""
     private var lastEventTimeMs = 0L
 
-    // Guard dedup — skip re-checking same screen state
-    @Volatile private var lastGuardText   = ""
-    @Volatile private var lastGuardResult = false
+    @Volatile
+    private var lastGuardText = ""
+    @Volatile
+    private var lastGuardResult = false
 
-    // Shorts spam lock — set immediately on first detection, cleared after dispatch
-    @Volatile private var shortsPendingTitle = ""
+    @Volatile
+    private var shortsPendingTitle = ""
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .build()
 
-    // Pattern 1: video title is always shown next to view count
+    // ── NEW: Overlay state ────────────────────────────────────────────────
+    private var overlayView: View? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private lateinit var windowManager: WindowManager
+
+    // Track last blocked video to avoid re-fetching suggestions for the same video
+    private var lastBlockedVideoId = ""
+
     private val VIEWS_PATTERN = Pattern.compile(
         "([A-Z][^\\n]{10,150})\\s+[\\d.,]+[KMBkm]?\\s+views",
         Pattern.CASE_INSENSITIVE
     )
 
-    // Pattern 2: title before @ChannelName during playback
     private val AT_CHANNEL_PATTERN = Pattern.compile(
         "([A-Z][^\\n@]{10,150})\\s{1,4}@[\\w]{2,50}(?:\\s|$)"
     )
 
-    // Pattern 3: direct video ID from URL — most reliable
     private val URL_PATTERN = Pattern.compile("(?:v=|youtu\\.be/|shorts/)([a-zA-Z0-9_-]{11})")
 
     override fun onServiceConnected() {
+        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         println("[CF_SERVICE] ✓ Connected — monitoring YouTube")
     }
 
@@ -190,25 +189,20 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         val now = System.currentTimeMillis()
         if (lastSentTitle.isNotEmpty() && (now - lastSentTimeMs) > TITLE_RESET_MS) {
             println("[CF_SERVICE] ↺ Reset title memory after timeout")
-            lastSentTitle  = ""
+            lastSentTitle = ""
             lastSentTimeMs = 0L
         }
 
         // ── Strategy 0: Direct video ID from event text ───────────────────────
-        // Most reliable — YouTube fires window state change events with the URL
-        // in the event text when navigating to a video.
         val eventText = event.text?.joinToString(" ") ?: ""
-        val urlMatch  = URL_PATTERN.matcher(eventText)
+        val urlMatch = URL_PATTERN.matcher(eventText)
         if (urlMatch.find()) {
             val videoId = urlMatch.group(1) ?: return
             enqueue(videoId, PRIORITY_PLAYING) { doHandleVideoId(videoId) }
             return
         }
 
-        // ── Strategy 0b: Check event source node directly (NEW) ───────────────
-        // event.source is the SPECIFIC view that changed, not the whole window.
-        // Checking it first avoids picking up URLs from recommendation cards that
-        // are present in the full tree but are NOT the currently playing video.
+        // ── Strategy 0b: Check event source node ──────────────────────────────
         val sourceNode = event.source
         if (sourceNode != null) {
             val sourceVideoId = extractVideoIdFromSourceNode(sourceNode)
@@ -219,7 +213,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             }
         }
 
-        val root    = rootInActiveWindow ?: return
+        val root = rootInActiveWindow ?: return
         val allText = collectAllNodeText(root)
 
         // ── Guard: skip duplicate screen states ───────────────────────────────
@@ -228,18 +222,14 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             return
         }
         val isAdOrComment = isAdPlaying(allText) || isCommentSectionVisible(allText)
-        lastGuardText   = allText
+        lastGuardText = allText
         lastGuardResult = isAdOrComment
         if (isAdOrComment) {
             root.recycle()
             return
         }
 
-        // ── Strategy 1: Video ID in tree — prefer playing area over feed ──────
-        // extractPlayerVideoId() scans the tree but favors URLs that appear near
-        // "views" text. The currently playing video title always sits above
-        // "X views · Y ago" in the player area. Recommendation card URLs do not
-        // have this proximity relationship in the concatenated string.
+        // ── Strategy 1: Video ID in tree ──────────────────────────────────────
         val playerVideoId = extractPlayerVideoId(allText)
         root.recycle()
 
@@ -248,22 +238,17 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             return
         }
 
-        // ── Strategy 2: Shorts detection — NB-only (no YouTube search) ───────
-        // Shorts fires TYPE_WINDOW_STATE_CHANGED on every swipe. The Shorts URL
-        // (youtube.com/shorts/ID) does not appear in the tree — only the title does.
-        //
-        // FIX: Previously this called doDispatchTitle → classifyByTitle →
-        //      YouTube search → WRONG VIDEO ID.
-        // Now: doDispatchTitleFast → /classify_fast (NB on title, no download, no search).
-        // The OIR label is determined from the actual title being displayed.
+        // ── Strategy 2: Shorts — NB-only ──────────────────────────────────────
+        // lastSentTitle is already normalized, so compare directly.
         val isShorts = allText.contains("Shorts") &&
                 !allText.contains("views", ignoreCase = true)
         if (isShorts) {
             val shortsTitle = extractShortsTitle(allText)
             if (shortsTitle != null
                 && isCleanTitle(shortsTitle)
-                && shortsTitle != lastSentTitle
-                && shortsTitle != shortsPendingTitle) {
+                && normalizeTitle(shortsTitle) != lastSentTitle
+                && normalizeTitle(shortsTitle) != normalizeTitle(shortsPendingTitle)
+            ) {
                 shortsPendingTitle = shortsTitle
                 println("[CF_SERVICE] ✓ [SHORTS] $shortsTitle")
                 enqueue(shortsTitle, PRIORITY_ACTIVE) { doDispatchTitleFast(shortsTitle) }
@@ -271,9 +256,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             }
         }
 
-        // ── Strategy 3: Title before view count (regular video playing) ───────
-        // classifyByTitle() now includes title-similarity verification.
-        // If the search returns the wrong video, it falls back to /classify_fast.
+        // ── Strategy 3: Title before view count ───────────────────────────────
         val viewsMatch = VIEWS_PATTERN.matcher(allText)
         if (viewsMatch.find()) {
             val t = viewsMatch.group(1)?.trim() ?: return
@@ -295,16 +278,9 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // URL EXTRACTION HELPERS
+    // URL EXTRACTION
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Checks the event source node and its immediate children for a YouTube URL.
-     *
-     * The source node is the specific view that fired the accessibility event —
-     * for navigation events this is the player/title area, NOT a recommendation card.
-     * Limits recursion to 3 levels to avoid descending into unrelated subtrees.
-     */
     private fun extractVideoIdFromSourceNode(node: AccessibilityNodeInfo, depth: Int = 0): String? {
         if (depth > 3) return null
         try {
@@ -314,51 +290,32 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             }
             val m = URL_PATTERN.matcher(text)
             if (m.find()) return m.group(1)
-
             for (i in 0 until node.childCount) {
                 val child = node.getChild(i) ?: continue
                 val result = extractVideoIdFromSourceNode(child, depth + 1)
                 child.recycle()
                 if (result != null) return result
             }
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+        }
         return null
     }
 
-    /**
-     * Extracts the video ID of the CURRENTLY PLAYING video from the full tree text.
-     *
-     * Strategy: Scan all URL matches in the concatenated tree text.
-     * Prefer the match where "views" (or "ago") appears within 400 characters
-     * BEFORE OR AFTER the match — this indicates the URL is co-located with
-     * the player area, not buried in a recommendation card.
-     *
-     * If no view-correlated match is found, return null so title-based fallback
-     * strategies can run rather than returning a potentially wrong recommendation ID.
-     */
     private fun extractPlayerVideoId(allText: String): String? {
         val matcher = URL_PATTERN.matcher(allText)
         val viewsIndicators = listOf("views", " ago", "K views", "M views", "B views")
-
         while (matcher.find()) {
-            val videoId   = matcher.group(1) ?: continue
+            val videoId = matcher.group(1) ?: continue
             val matchStart = matcher.start()
-            val matchEnd   = matcher.end()
-
-            // Check a 400-char window around the URL match for view-count indicators
+            val matchEnd = matcher.end()
             val windowStart = maxOf(0, matchStart - 400)
-            val windowEnd   = minOf(allText.length, matchEnd + 400)
-            val window      = allText.substring(windowStart, windowEnd)
-
-            val hasViewCount = viewsIndicators.any { window.contains(it, ignoreCase = true) }
-            if (hasViewCount) {
+            val windowEnd = minOf(allText.length, matchEnd + 400)
+            val window = allText.substring(windowStart, windowEnd)
+            if (viewsIndicators.any { window.contains(it, ignoreCase = true) }) {
                 println("[CF_SERVICE] ✓ [TREE-VERIFIED] $videoId (view-count correlated)")
                 return videoId
             }
         }
-
-        // No view-correlated URL found — do NOT fall back to first match to avoid
-        // returning recommendation card IDs. Let title strategies run instead.
         return null
     }
 
@@ -417,7 +374,6 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         synchronized(this) {
             when {
                 target == currentTarget && currentJob.isActive -> Unit
-
                 priority > currentPriority && currentJob.isActive -> {
                     println("[QUEUE] ⬆ P$priority cancels: ${currentTarget.take(35)}")
                     currentJob.cancel()
@@ -425,22 +381,22 @@ class ChildFocusAccessibilityService : AccessibilityService() {
                 }
 
                 !currentJob.isActive -> startJob(target, priority, block)
-
                 else -> Unit
             }
         }
     }
 
     private fun startJob(target: String, priority: Int, block: suspend () -> Unit) {
-        currentTarget   = target
+        currentTarget = target
         currentPriority = priority
         currentJob = scope.launch {
-            try { block() }
-            finally {
+            try {
+                block()
+            } finally {
                 synchronized(this@ChildFocusAccessibilityService) {
                     if (currentTarget == target) {
                         currentPriority = 0
-                        currentTarget   = ""
+                        currentTarget = ""
                     }
                 }
             }
@@ -454,7 +410,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     private suspend fun doHandleVideoId(videoId: String) {
         if (videoId == lastSentTitle) return
-        lastSentTitle  = videoId
+        lastSentTitle = videoId
         lastSentTimeMs = System.currentTimeMillis()
         println("[CF_SERVICE] ✓ [PLAYING] $videoId")
         broadcastResult(videoId, "Analyzing", 0f, false)
@@ -467,14 +423,21 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Worker for title-based detection (Strategies 3 & 4 — regular video).
-     * Calls classifyByTitle() which includes similarity verification:
-     * if the YouTube search returns a different video, falls back to NB-only.
+     * Worker for regular video title detection (Strategies 3 & 4).
+     *
+     * EARLY LOCK: lastSentTitle = normalizeTitle(title) is set BEFORE delay().
+     * This prevents the full player title ("Title - Subtitle | Channel") from
+     * firing a second classification during the 1500ms debounce window.
      */
     private suspend fun doDispatchTitle(title: String) {
-        if (title.length < 8 || title == lastSentTitle) return
+        val normalized = normalizeTitle(title)
+        if (title.length < 8 || normalized == lastSentTitle) return
 
-        pendingTitle    = title
+        // Early lock — claim before debounce
+        lastSentTitle = normalized
+        lastSentTimeMs = System.currentTimeMillis()
+
+        pendingTitle = title
         lastEventTimeMs = System.currentTimeMillis()
 
         delay(DEBOUNCE_MS)
@@ -483,33 +446,32 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         if (pendingTitle != title) return
         if ((System.currentTimeMillis() - lastEventTimeMs) < DEBOUNCE_MS) return
 
-        lastSentTitle      = title
         shortsPendingTitle = ""
-        lastSentTimeMs     = System.currentTimeMillis()
         println("[CF_SERVICE] ✓ [ACTIVE] $title")
 
         broadcastResult(title, "Analyzing", 0f, false)
         if (!currentJob.isActive) return
 
-        classifyByTitle(title)   // includes similarity verification
+        classifyByTitle(title)
     }
 
     /**
-     * Worker for Shorts title-based detection (Strategy 2).
+     * Worker for Shorts title detection (Strategy 2).
      *
-     * Uses /classify_fast (NB-only on title text) instead of /classify_by_title.
-     * Reason: Shorts URLs are never exposed in the accessibility tree, so there is
-     * no reliable way to get the correct video ID. Searching YouTube for a Shorts
-     * title consistently returns mismatched videos because Shorts content is indexed
-     * differently from regular search results.
-     *
-     * NB classification on the title alone is sufficient and accurate for the
-     * overstimulation detection goal — the title reflects the content type.
+     * EARLY LOCK: Same reason as doDispatchTitle(). When a Short is detected in
+     * the search feed and the user clicks it within 1500ms, YouTube fires the full
+     * player title "Title - Subtitle | Channel" before the debounce expires. The
+     * early lock prevents that event from starting a second classification.
      */
     private suspend fun doDispatchTitleFast(title: String) {
-        if (title.length < 8 || title == lastSentTitle) return
+        val normalized = normalizeTitle(title)
+        if (title.length < 8 || normalized == lastSentTitle) return
 
-        pendingTitle    = title
+        // Early lock — claim before debounce
+        lastSentTitle = normalized
+        lastSentTimeMs = System.currentTimeMillis()
+
+        pendingTitle = title
         lastEventTimeMs = System.currentTimeMillis()
 
         delay(DEBOUNCE_MS)
@@ -518,9 +480,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         if (pendingTitle != title) return
         if ((System.currentTimeMillis() - lastEventTimeMs) < DEBOUNCE_MS) return
 
-        lastSentTitle      = title
         shortsPendingTitle = ""
-        lastSentTimeMs     = System.currentTimeMillis()
         println("[CF_SERVICE] ✓ [SHORTS-FAST] $title")
 
         broadcastResult(title, "Analyzing", 0f, false)
@@ -534,14 +494,18 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     // ═══════════════════════════════════════════════════════════════════════════
 
     private fun isAdPlaying(allText: String): Boolean =
-        listOf("Skip Ads", "Skip ad", "Ad ·", "Why this ad",
-            "Stop seeing this ad", "Visit advertiser", "Skip in")
+        listOf(
+            "Skip Ads", "Skip ad", "Ad ·", "Why this ad",
+            "Stop seeing this ad", "Visit advertiser", "Skip in"
+        )
             .any { allText.contains(it, ignoreCase = true) }
 
     private fun isCommentSectionVisible(allText: String): Boolean =
-        listOf("Add a comment", "Top comments", "Newest first",
+        listOf(
+            "Add a comment", "Top comments", "Newest first",
             "Sort comments", "Be the first to comment",
-            "Pinned comment", "Show more replies", "Load more comments")
+            "Pinned comment", "Show more replies", "Load more comments"
+        )
             .any { allText.contains(it, ignoreCase = true) }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -551,12 +515,12 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     private fun collectAllNodeText(node: AccessibilityNodeInfo): String {
         val sb = StringBuilder()
         try {
-            val className    = node.className?.toString() ?: ""
-            val isSkipped    = SKIP_NODE_CLASSES.any { className.endsWith(it.substringAfterLast('.')) }
-            val textLen      = node.text?.length ?: 0
+            val className = node.className?.toString() ?: ""
+            val isSkipped = SKIP_NODE_CLASSES.any { className.endsWith(it.substringAfterLast('.')) }
+            val textLen = node.text?.length ?: 0
             val isButtonLike = node.isClickable && textLen in 1..25 && node.childCount == 0
             if (!isSkipped && !isButtonLike) {
-                node.text?.let               { sb.append(it).append("\n") }
+                node.text?.let { sb.append(it).append("\n") }
                 node.contentDescription?.let { sb.append(it).append("\n") }
             }
             for (i in 0 until node.childCount) {
@@ -564,13 +528,41 @@ class ChildFocusAccessibilityService : AccessibilityService() {
                 sb.append(collectAllNodeText(child))
                 child.recycle()
             }
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+        }
         return sb.toString()
     }
 
+    /**
+     * Normalizes a title for dedup comparison ONLY — never sent to Flask.
+     *
+     * Strips the " | Channel" and " - Subtitle" suffixes YouTube appends in the
+     * full player title, then lowercases. Ensures the same video detected at
+     * different points (feed card, player loading, full title) maps to one entry.
+     *
+     * Examples:
+     *   "You Grow Girl! - Spring Motivation with Sixteen | Numberblocks" → "you grow girl!"
+     *   "you grow girl! - spring motivation with sixteen"                → "you grow girl!"
+     *   "WINE 11 - play Short"                                           → "wine 11"
+     */
+    private fun normalizeTitle(raw: String): String =
+        raw.substringBefore(" | ")
+            .substringBefore(" - ")
+            .lowercase()
+            .trim()
+
     private fun isCleanTitle(text: String): Boolean {
+        // ── NEW FILTERS (must be FIRST) ───────────────────────────────────────
+        // Block subtitle fragments: "throughout your app", "so you can rapidly build"
+        if (text.isNotEmpty() && text[0].isLowerCase()) return false
+
+        // Block caption sentences: "Firebase is here to help.", "AI is changing the world."
+        if (text.trimEnd().endsWith(".")) return false
+
+        // ── EXISTING FILTERS (unchanged) ──────────────────────────────────────
         if (text.length < 8 || text.length > 200) return false
         if (SKIP_TITLES.any { text.contains(it, ignoreCase = true) }) return false
+
         val lowerText = text.lowercase()
         if (lowerText.contains("affiliate") ||
             lowerText.contains("shopee") ||
@@ -595,36 +587,27 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             lowerText.contains("sangla") ||
             lowerText.startsWith("helps ") ||
             lowerText.startsWith("get ") && text.length < 60 ||
-            lowerText.startsWith("try ") && text.length < 50) {
+            lowerText.startsWith("try ") && text.length < 50
+        ) {
             return false
         }
+
         if (Regex("[A-Za-z]{1,4}-?\\d{4,}[A-Za-z0-9]*").containsMatchIn(text)) return false
         if (Regex("^[A-Z][a-zA-Z]+ [·•] [A-Z][a-zA-Z]+$").containsMatchIn(text)) return false
         if (CHANNEL_HANDLE_RE.matches(text.trim())) return false
         if (text.trim().split(Regex("\\s+")).size < 2) return false
+
         return true
     }
 
-    /**
-     * Jaccard word-overlap similarity between two title strings.
-     *
-     * Strips words shorter than 3 characters (articles, conjunctions) to focus
-     * on meaningful content words. Returns a value in [0.0, 1.0].
-     *
-     * Used by classifyByTitle() to verify the YouTube search returned the same
-     * video that the accessibility service detected.
-     *
-     * Examples:
-     *   "You Grow Girl spring motivation" vs "Never Give Up on Your Dreams" → ~0.0
-     *   "Cocomelon ABC Song for kids"    vs "Cocomelon ABC Song"            → ~0.75
-     */
+
     private fun jaccardSimilarity(a: String, b: String): Double {
         val aWords = a.lowercase().split(Regex("\\s+")).filter { it.length > 2 }.toSet()
         val bWords = b.lowercase().split(Regex("\\s+")).filter { it.length > 2 }.toSet()
         if (aWords.isEmpty() && bWords.isEmpty()) return 1.0
         if (aWords.isEmpty() || bWords.isEmpty()) return 0.0
         val intersection = aWords.intersect(bWords).size.toDouble()
-        val union        = aWords.union(bWords).size.toDouble()
+        val union = aWords.union(bWords).size.toDouble()
         return intersection / union
     }
 
@@ -632,85 +615,57 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     // NETWORK
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Classify a regular video by searching YouTube for its title.
-     *
-     * After getting the result from /classify_by_title, the returned video_title
-     * is compared against the detected title using Jaccard similarity.
-     * If similarity < TITLE_SIMILARITY_THRESHOLD (0.35), the search returned
-     * a different video — classifyFastByTitle() is called as the fallback.
-     *
-     * This prevents the "wrong video classified" bug where YouTube search returns
-     * a different video as the top result for a given title string.
-     */
     private fun classifyByTitle(detectedTitle: String) {
         try {
-            val body    = JSONObject().apply { put("title", detectedTitle) }
+            val body = JSONObject().apply { put("title", detectedTitle) }
             val request = Request.Builder()
                 .url("$BASE_URL/classify_by_title")
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
                 .build()
             val response = http.newCall(request).execute()
-            val json     = JSONObject(response.body?.string() ?: return)
+            val json = JSONObject(response.body?.string() ?: return)
 
-            // ── Similarity verification ───────────────────────────────────
             val returnedTitle = json.optString("video_title", "").trim()
             if (returnedTitle.isNotEmpty()) {
                 val similarity = jaccardSimilarity(detectedTitle, returnedTitle)
                 println(
                     "[CF_SERVICE] Title similarity: " +
-                    "'${detectedTitle.take(40)}' vs '${returnedTitle.take(40)}' = " +
-                    "%.2f".format(similarity)
+                            "'${detectedTitle.take(40)}' vs '${returnedTitle.take(40)}' = " +
+                            "%.2f".format(similarity)
                 )
                 if (similarity < TITLE_SIMILARITY_THRESHOLD) {
-                    // YouTube search returned a different video.
-                    // Fall back to NB-only classification on the original title.
-                    println("[CF_SERVICE] ⚠ Mismatch — falling back to classify_fast for: ${detectedTitle.take(50)}")
+                    println(
+                        "[CF_SERVICE] ⚠ Mismatch — falling back to classify_fast for: ${
+                            detectedTitle.take(
+                                50
+                            )
+                        }"
+                    )
                     classifyFastByTitle(detectedTitle)
                     return
                 }
             }
-
             handleClassificationResult(json)
         } catch (e: Exception) {
             println("[CF_SERVICE] ✗ classify_by_title: ${e.message}")
-            // Network failure — try NB-only as last resort
             classifyFastByTitle(detectedTitle)
         }
     }
 
-    /**
-     * NB-only classification using just the video title.
-     *
-     * Calls /classify_fast which runs the Naïve Bayes model on the title text.
-     * No video download, no YouTube search, no possibility of wrong video ID.
-     *
-     * Used for:
-     *   - All Shorts (Strategy 2): Shorts URL is never in the accessibility tree
-     *   - Title-mismatch fallback: when classify_by_title returns a different video
-     *   - Network error fallback: when classify_by_title fails
-     *
-     * The video_id broadcast is the title truncated to 40 chars. This is a
-     * display identifier only — the overlay's exclude parameter and the ViewModel
-     * state both handle non-ID strings gracefully.
-     */
     private fun classifyFastByTitle(title: String) {
         try {
-            val body    = JSONObject().apply { put("title", title) }
+            val body = JSONObject().apply { put("title", title) }
             val request = Request.Builder()
                 .url("$BASE_URL/classify_fast")
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
                 .build()
             val response = http.newCall(request).execute()
-            val json     = JSONObject(response.body?.string() ?: return)
+            val json = JSONObject(response.body?.string() ?: return)
 
-            // /classify_fast returns: score_nb, oir_label (or label), status
-            val label = json.optString("oir_label",
-                        json.optString("label", "Neutral"))
+            val label = json.optString("oir_label", json.optString("label", "Neutral"))
             val score = json.optDouble("score_nb", 0.5).toFloat()
 
             println("[CF_SERVICE] ✓ [FAST] '${title.take(50)}' → $label ($score)")
-            // Use title as the display identifier — no real video ID available
             broadcastResult(title, label, score, false)
         } catch (e: Exception) {
             println("[CF_SERVICE] ✗ classify_fast: ${e.message}")
@@ -720,7 +675,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     private fun classifyByUrl(videoId: String, videoUrl: String, thumbUrl: String) {
         try {
             val body = JSONObject().apply {
-                put("video_url",     videoUrl)
+                put("video_url", videoUrl)
                 put("thumbnail_url", thumbUrl)
             }
             val request = Request.Builder()
@@ -728,7 +683,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
                 .build()
             val response = http.newCall(request).execute()
-            val json     = JSONObject(response.body?.string() ?: return)
+            val json = JSONObject(response.body?.string() ?: return)
             handleClassificationResult(json)
         } catch (e: Exception) {
             println("[CF_SERVICE] ✗ classify_full: ${e.message}")
@@ -736,33 +691,183 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     private fun handleClassificationResult(json: JSONObject) {
-        val label   = json.optString("oir_label", "Neutral")
-        val score   = json.optDouble("score_final", 0.5)
-        val cached  = json.optBoolean("cached", false)
+        val label = json.optString("oir_label", "Neutral")
+        val score = json.optDouble("score_final", 0.5)
+        val cached = json.optBoolean("cached", false)
         val videoId = json.optString("video_id", "unknown")
+
         println("[CF_SERVICE] $videoId → $label ($score) cached=$cached")
         broadcastResult(videoId, label, score.toFloat(), cached)
+
+        // ── NEW: Show overlay for overstimulating content ────────────────────
+        if (label.equals("Overstimulating", ignoreCase = true) && score >= 0.75) {
+            mainHandler.post {
+                showBlockOverlay(videoId, score.toFloat())
+            }
+        }
     }
+
 
     private fun broadcastResult(videoId: String, label: String, score: Float, cached: Boolean) {
         val intent = Intent("com.childfocus.CLASSIFICATION_RESULT").apply {
-            putExtra("video_id",    videoId)
-            putExtra("oir_label",   label)
+            putExtra("video_id", videoId)
+            putExtra("oir_label", label)
             putExtra("score_final", score)
-            putExtra("cached",      cached)
+            putExtra("cached", cached)
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // OVERLAY MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private fun showBlockOverlay(videoId: String, score: Float) {
+        // Don't stack overlays
+        if (overlayView != null) return
+
+        // Permission check — open settings if missing
+        if (!android.provider.Settings.canDrawOverlays(this)) {
+            val intent = Intent(
+                android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+            return
+        }
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT
+        )
+
+        val inflater = LayoutInflater.from(this)
+        overlayView = inflater.inflate(R.layout.overlay_blocked, null, false)
+
+
+        // Show OIR score for transparency
+        overlayView?.findViewById<TextView>(R.id.tvScore)?.text =
+            "OIR Score: ${"%.2f".format(score)} (threshold: 0.75)"
+
+        // Dismiss button
+        overlayView?.findViewById<Button>(R.id.btnClose)?.setOnClickListener {
+            removeOverlay()
+        }
+
+        windowManager.addView(overlayView, params)
+
+        // Fetch safe suggestions in background
+        fetchAndShowSuggestions(videoId)
+    }
+
+    private fun removeOverlay() {
+        overlayView?.let {
+            windowManager.removeView(it)
+            overlayView = null
+        }
+    }
+
+    private fun fetchAndShowSuggestions(excludeVideoId: String) {
+        scope.launch {
+            try {
+                val url = "$BASE_URL/safe_suggestions?limit=3&exclude=$excludeVideoId"
+                val request = Request.Builder().url(url).get().build()
+                val response = http.newCall(request).execute()
+                val json = JSONObject(response.body?.string() ?: return@launch)
+
+                val suggestionsArray = json.optJSONArray("suggestions") ?: return@launch
+                val suggestions = mutableListOf<VideoSuggestion>()
+
+                for (i in 0 until suggestionsArray.length()) {
+                    val item = suggestionsArray.getJSONObject(i)
+                    suggestions.add(
+                        VideoSuggestion(
+                            videoId = item.getString("video_id"),
+                            label = item.getString("label"),
+                            finalScore = item.getDouble("final_score").toFloat(),
+                            title = item.optString("video_title", "Educational Video")
+                        )
+                    )
+                }
+
+                // Update UI on main thread
+                mainHandler.post {
+                    displaySuggestions(suggestions)
+                }
+            } catch (e: Exception) {
+                println("[CF_SERVICE] ✗ /safe_suggestions fetch: ${e.message}")
+                mainHandler.post {
+                    overlayView?.findViewById<ProgressBar>(R.id.pbSuggestions)?.visibility =
+                        View.GONE
+                }
+            }
+        }
+    }
+
+    private fun displaySuggestions(suggestions: List<VideoSuggestion>) {
+        val container = overlayView?.findViewById<LinearLayout>(R.id.llSuggestions) ?: return
+        overlayView?.findViewById<ProgressBar>(R.id.pbSuggestions)?.visibility = View.GONE
+
+        suggestions.forEach { video ->
+            val card = TextView(this).apply {
+                text = "▶  ${video.title.take(30)}"
+                textSize = 13f
+                setTextColor(android.graphics.Color.WHITE)
+                setPadding(16, 12, 16, 12)
+                setBackgroundColor(android.graphics.Color.parseColor("#3388FF88"))
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                ).also { it.marginEnd = 8 }
+
+                setOnClickListener {
+                    // Open YouTube to the safe video
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://www.youtube.com/watch?v=${video.videoId}")
+                    )
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                    removeOverlay()
+                }
+            }
+            container.addView(card)
+        }
+    }
+
+    // Data class for suggestions response
+    private data class VideoSuggestion(
+        val videoId: String,
+        val label: String,
+        val finalScore: Float,
+        val title: String
+    )
+
+
     override fun onInterrupt() {
         println("[CF_SERVICE] Interrupted")
+
+        // ── NEW: Clean up overlay ────────────────────────────────────────────
+        mainHandler.post { removeOverlay() }
+
         currentJob.cancel()
-        lastSentTitle      = ""
-        lastSentTimeMs     = 0L
-        pendingTitle       = ""
-        lastEventTimeMs    = 0L
-        currentPriority    = 0
-        currentTarget      = ""
+        lastSentTitle = ""
+        lastSentTimeMs = 0L
+        pendingTitle = ""
+        lastEventTimeMs = 0L
+        currentPriority = 0
+        currentTarget = ""
         shortsPendingTitle = ""
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mainHandler.post { removeOverlay() }
+    }
+
 }
