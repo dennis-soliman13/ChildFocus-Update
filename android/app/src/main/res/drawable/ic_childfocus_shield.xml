@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!--
+        Shield body — a classic shield silhouette.
+        The child figure with raised arms sits inside.
+        Color: white, so it works on both the dark overlay and the status bar notification.
+    -->
+
+    <!-- Outer shield shape -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M12,2
+            L4,5
+            L4,11
+            C4,15.55 7.42,19.74 12,21
+            C16.58,19.74 20,15.55 20,11
+            L20,5
+            Z
+        "/>
+
+    <!-- Inner child silhouette (darker tint on white shield) -->
+    <!-- Head -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="
+            M12,7
+            m-1.1,0
+            a1.1,1.1 0 1,0 2.2,0
+            a1.1,1.1 0 1,0 -2.2,0
+        "/>
+
+    <!-- Body -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="
+            M10.5,9.2
+            L9,11
+            L10,11
+            L10,14
+            L12,14
+            L12,14
+            L14,14
+            L14,11
+            L15,11
+            L13.5,9.2
+            Z
+        "/>
+
+    <!-- Left arm raised -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="
+            M10.5,9.5 L8.5,8.5 L8,9.3 L10,10.2 Z
+        "/>
+
+    <!-- Right arm raised -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="
+            M13.5,9.5 L15.5,8.5 L16,9.3 L14,10.2 Z
+        "/>
+
+</vector>

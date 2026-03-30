@@ -1,88 +1,84 @@
 package com.childfocus.viewmodel
 
-import android.app.Application
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import androidx.lifecycle.AndroidViewModel
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-
-sealed class ClassifyState {
-    object Idle : ClassifyState()
-    data class Analyzing(val videoId: String) : ClassifyState()
-    data class Allowed(
-        val videoId: String,
-        val label:   String,
-        val score:   Float,
-        val cached:  Boolean = false,
-    ) : ClassifyState()
-    data class Blocked(
-        val videoId: String,
-        val label:   String,
-        val score:   Float,
-        val cached:  Boolean = false,
-    ) : ClassifyState()
-    data class Error(val videoId: String) : ClassifyState()
-}
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * SafetyViewModel
  *
- * FIX: Replaced Context.RECEIVER_NOT_EXPORTED (API 33+ only) with
- * LocalBroadcastManager which works on API 21+.
- * The old code crashed silently on API 30 — receiver was never registered,
- * so the UI never updated regardless of what the service sent.
+ * Additions for the Proton VPN-style flow:
+ *
+ *  isWaitingForService  — true while the user is in Accessibility Settings.
+ *                         LandingScreen shows a pulsing "Waiting…" state.
+ *
+ *  setWaitingForService — called by MainActivity when it opens settings.
+ *
+ *  onServiceConfirmed   — called by MainActivity.onResume() when it detects
+ *                         the accessibility service is now enabled. Clears the
+ *                         waiting state and activates safety mode automatically.
+ *
+ *  turnOffSafetyMode    — explicit off (replaces the ambiguous toggleSafetyMode
+ *                         call from SafetyModeScreen's "Turn Off" button).
+ *
+ * Keep your existing classifyState, dismissBlock, and any other fields below
+ * the new additions — this file shows only the new/changed surface.
  */
-class SafetyViewModel(application: Application) : AndroidViewModel(application) {
+class SafetyViewModel : ViewModel() {
 
-    private val _safetyModeOn  = MutableStateFlow(false)
-    val safetyModeOn: StateFlow<Boolean> = _safetyModeOn
+    // ── Safety mode ──────────────────────────────────────────────────────────
+
+    private val _safetyModeOn = MutableStateFlow(false)
+    val safetyModeOn: StateFlow<Boolean> = _safetyModeOn.asStateFlow()
+
+    // ── Waiting-for-service state ─────────────────────────────────────────────
+
+    private val _isWaitingForService = MutableStateFlow(false)
+    val isWaitingForService: StateFlow<Boolean> = _isWaitingForService.asStateFlow()
+
+    /**
+     * Called by MainActivity right before it opens Accessibility Settings.
+     * Puts the LandingScreen into the animated "Waiting…" state.
+     */
+    fun setWaitingForService(waiting: Boolean) {
+        _isWaitingForService.value = waiting
+    }
+
+    /**
+     * Called by MainActivity.onResume() when isAccessibilityServiceEnabled() returns true.
+     * Clears the waiting spinner and activates protection — just like Proton VPN
+     * auto-transitioning to "Connected" after you flip the VPN toggle.
+     */
+    fun onServiceConfirmed() {
+        _isWaitingForService.value = false
+        _safetyModeOn.value        = true
+    }
+
+    /**
+     * Called when the user taps "Turn Off" in SafetyModeScreen.
+     */
+    fun turnOffSafetyMode() {
+        _safetyModeOn.value        = false
+        _isWaitingForService.value = false
+    }
+
+    // ── Classification result state ───────────────────────────────────────────
+    // Keep your existing classifyState / dismissBlock implementation below.
+    // Example stub — replace with your real implementation:
 
     private val _classifyState = MutableStateFlow<ClassifyState>(ClassifyState.Idle)
-    val classifyState: StateFlow<ClassifyState> = _classifyState
-
-    private val localBroadcast = LocalBroadcastManager.getInstance(application)
-
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(ctx: Context?, intent: Intent?) {
-            intent ?: return
-            val videoId = intent.getStringExtra("video_id")    ?: return
-            val label   = intent.getStringExtra("oir_label")   ?: return
-            val score   = intent.getFloatExtra("score_final", 0.5f)
-            val cached  = intent.getBooleanExtra("cached", false)
-
-            _classifyState.value = when (label) {
-                "Analyzing"       -> ClassifyState.Analyzing(videoId)
-                "Overstimulating" -> ClassifyState.Blocked(videoId, label, score, cached)
-                "Error"           -> ClassifyState.Error(videoId)
-                else              -> ClassifyState.Allowed(videoId, label, score, cached)
-            }
-        }
-    }
-
-    init {
-        localBroadcast.registerReceiver(
-            receiver,
-            IntentFilter("com.childfocus.CLASSIFICATION_RESULT")
-        )
-    }
-
-    fun toggleSafetyMode() {
-        _safetyModeOn.value = !_safetyModeOn.value
-        if (!_safetyModeOn.value) {
-            _classifyState.value = ClassifyState.Idle
-        }
-    }
+    val classifyState: StateFlow<ClassifyState> = _classifyState.asStateFlow()
 
     fun dismissBlock() {
         _classifyState.value = ClassifyState.Idle
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        localBroadcast.unregisterReceiver(receiver)
+    // ── ClassifyState sealed class (keep your existing one if different) ───────
+
+    sealed class ClassifyState {
+        object Idle : ClassifyState()
+        data class Blocked(val videoId: String, val score: Float) : ClassifyState()
+        data class Analyzing(val title: String) : ClassifyState()
     }
 }

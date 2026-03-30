@@ -1,8 +1,9 @@
 package com.childfocus.service
-import com.childfocus.R
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -18,42 +19,14 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import android.view.LayoutInflater
-import android.view.View
-import android.view.WindowManager
-import android.graphics.PixelFormat
-import android.widget.Button
-import android.widget.TextView
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.net.Uri
-import android.os.Handler
-import android.os.Looper
 
-
-/**
- * ChildFocusAccessibilityService
- *
- * VIDEO ID EXTRACTION — FIX LOG
- * ─────────────────────────────
- * Fix 1 — Strategy 0b: Check event.source before scanning full tree.
- * Fix 2 — Strategy 1: extractPlayerVideoId() prefers view-count-correlated URLs.
- * Fix 3 — Strategy 2 (Shorts): doDispatchTitleFast → /classify_fast (NB-only).
- * Fix 4 — Strategies 3/4: Jaccard similarity verification on /classify_by_title.
- * Fix 5 — normalizeTitle() dedup: strips " | channel" and " - subtitle" suffixes
- *          so the same video detected at different title lengths maps to the same
- *          lastSentTitle entry and is classified only once.
- * Fix 6 — Early lock: lastSentTitle is now set BEFORE delay() in both workers.
- *          Root cause of triple-classification: YouTube fires the full player title
- *          ("Title - Subtitle | Channel") during the 1500ms debounce window. At
- *          that point lastSentTitle was still empty, so the normalize check passed
- *          and a second job was started. Setting lastSentTitle = normalizeTitle(title)
- *          before delay() closes that race window.
- */
 class ChildFocusAccessibilityService : AccessibilityService() {
 
     companion object {
-        private const val FLASK_HOST = "192.168.100.9"
+        // ── Change this ONE line to switch targets ────────────────────────
+        // Emulator (Pixel AVD) → "10.0.2.2"
+        // Physical (same WiFi) → your PC's local IP e.g. "192.168.1.x"
+        private const val FLASK_HOST = "192.168.1.16"
         private const val FLASK_PORT = 5000
         private const val BASE_URL = "http://$FLASK_HOST:$FLASK_PORT"
 
@@ -61,68 +34,71 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         private const val DEBOUNCE_MS = 1500L
 
         private const val PRIORITY_PLAYING = 3
-        private const val PRIORITY_ACTIVE = 2
-
-        private const val TITLE_SIMILARITY_THRESHOLD = 0.35
+        private const val PRIORITY_ACTIVE  = 2
 
         private val SKIP_TITLES = listOf(
-            // Player controls
             "Shorts", "Sponsored", "Advertisement", "Ad ·", "Skip Ads",
-            "My Mix", "Trending", "Explore", "Subscriptions",
-            "Library", "Home", "Video player", "Minimized player",
-            "Minimize", "Cast", "More options", "Hide controls",
-            "Enter fullscreen", "Rewind", "Fast forward", "Navigate up",
-            "Voice search", "Choose Premium",
-            // Action menus
+            "My Mix", "Trending", "Explore", "Subscriptions", "Library",
+            "Home", "Video player", "Minimized player", "Minimize", "Cast",
+            "More options", "Hide controls", "Enter fullscreen", "Rewind",
+            "Fast forward", "Navigate up", "Voice search", "Choose Premium",
             "More actions", "YouTube makes for you", "Drag to reorder",
             "Close Repeat", "Shuffle Menu", "Sign up", "re playlists",
-            "Queue", "ylists", "Add to queue", "Save to playlist",
-            "Share", "Report", "Not interested", "Don't recommend channel", "Next:",
-            // Channel/account UI
+            "Queue", "ylists", "Add to queue", "Save to playlist", "Share",
+            "Report", "Not interested", "Don't recommend channel", "Next:",
             "Subscribe", "Subscribed", "Join", "Bell", "notifications",
-            // Timestamp noise
             "minutes, ", "seconds", "Go to channel",
-            // Feed noise
             "Music for you", "TikTok Lite", "Top podcasts", "Recommended",
-            "Continue watching", "Up next", "Playing next",
-            "Autoplay is", "Pause autoplay", "Mix -", "Topic",
-            // Ad labels
+            "Continue watching", "Up next", "Playing next", "Autoplay is",
+            "Pause autoplay", "Mix -", "Topic",
             "Why this ad", "Stop seeing this ad", "Visit advertiser",
             "Ad ", "Promoted", "Sponsored content",
-            // View count noise
-            "K views", "M views", "B views",
-            "months ago", "years ago", "days ago", "hours ago", "weeks ago",
-            "See #", "videos ...more", "...more",
-            // Comment UI
+            "K views", "M views", "B views", "months ago", "years ago",
+            "days ago", "hours ago", "weeks ago", "See #", "videos ...more",
+            "...more",
             "Add a comment", "@mention", "comment or @", "Reply", "replies",
             "Pinned comment", "View all comments", "Comments are turned off",
-            "Top comments", "Newest first", "Sort comments",
-            "likes", "like this", "liked by", "Liked by creator",
-            "Show more replies", "Hide replies", "Load more comments",
-            "Be the first to comment", "No comments yet",
-            // Shorts UI
+            "Top comments", "Newest first", "Sort comments", "likes",
+            "like this", "liked by", "Liked by creator", "Show more replies",
+            "Hide replies", "Load more comments", "Be the first to comment",
+            "No comments yet",
             "See more videos using this sound", "using this sound",
             "Original audio", "Original sound", "Collaboration channels",
             "View product", "Shop now", "Swipe up", "Add yours", "Remix this",
-            // Live stream overlays on Shorts thumbnails
-            "Tap to watch live", "Tap to watch", "Watch live",
-            "New content available",
-            // Shorts shelf labels — "play Short" (without s) bypasses the "Shorts" check
-            "play Short", "play short",
-            // Music indicators
             "(Official", "- Topic", "♪", "♫", "🎵", "🎶",
-            // YouTube Premium popups
             "Premium Lite", "Try Premium", "YouTube Premium",
             "you'll want to try", "Ad-free", "Get Premium",
-            // Feature unavailable
-            "Feature not available",
-            "not available for this video",
+            "Feature not available", "not available for this video",
+            // Notification / banner false positives
+            "New content available", "content is available",
+            "Subscriptions:", "new content",
         )
 
+        /**
+         * Short single-word UI terms that must only match as whole words,
+         * not as substrings inside real title words (e.g. "Subscribe" must
+         * not reject "subscriber", "seconds" must not reject "split seconds").
+         */
+        private val SKIP_TITLES_WHOLE_WORD = setOf(
+            "Subscribe", "Subscribed", "Join", "Bell", "Share", "Reply",
+            "Report", "Queue", "Topic", "Shorts", "Explore", "Library",
+            "Home", "Cast", "Minimize", "likes", "seconds", "Recommended",
+        )
+
+        // Pre-compiled regex for whole-word SKIP_TITLES matching (case-insensitive)
+        private val SKIP_TITLES_WHOLE_WORD_RE: Regex = run {
+            val pattern = SKIP_TITLES_WHOLE_WORD
+                .joinToString("|") { Regex.escape(it) }
+            Regex("(?i)\\b($pattern)\\b")
+        }
+
         private val SKIP_NODE_CLASSES = listOf(
-            "android.widget.ImageButton", "android.widget.ImageView",
-            "android.widget.ProgressBar", "android.widget.SeekBar",
-            "android.widget.CheckBox", "android.widget.Switch",
+            "android.widget.ImageButton",
+            "android.widget.ImageView",
+            "android.widget.ProgressBar",
+            "android.widget.SeekBar",
+            "android.widget.CheckBox",
+            "android.widget.Switch",
             "android.widget.RadioButton",
         )
 
@@ -131,55 +107,48 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    @Volatile
-    private var currentJob: Job = Job().also { it.cancel() }
-    @Volatile
-    private var currentPriority = 0
-    @Volatile
-    private var currentTarget = ""
+    @Volatile private var currentJob: Job = Job().also { it.cancel() }
+    @Volatile private var currentPriority = 0
+    @Volatile private var currentTarget = ""
 
-    // Stores the NORMALIZED title of the last video that entered the pipeline.
-    // Set BEFORE the debounce delay (early lock) so duplicates during the 1500ms
-    // window are blocked. Raw titles are never stored here — always normalized.
-    private var lastSentTitle = ""
-    private var lastSentTimeMs = 0L
-    private var pendingTitle = ""
+    private var lastSentTitle   = ""
+    private var lastSentTimeMs  = 0L
+    private var pendingTitle    = ""
     private var lastEventTimeMs = 0L
 
-    @Volatile
-    private var lastGuardText = ""
-    @Volatile
-    private var lastGuardResult = false
-
-    @Volatile
-    private var shortsPendingTitle = ""
+    @Volatile private var lastGuardText      = ""
+    @Volatile private var lastGuardResult    = false
+    @Volatile private var shortsPendingTitle = ""
+    @Volatile private var lastExtractedShortsKey  = ""
+    @Volatile private var lastShortsScreenHash   = 0
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .build()
 
-    // ── NEW: Overlay state ────────────────────────────────────────────────
-    private var overlayView: View? = null
-    private val mainHandler = Handler(Looper.getMainLooper())
-    private lateinit var windowManager: WindowManager
-
-    // Track last blocked video to avoid re-fetching suggestions for the same video
-    private var lastBlockedVideoId = ""
-
     private val VIEWS_PATTERN = Pattern.compile(
         "([A-Z][^\\n]{10,150})\\s+[\\d.,]+[KMBkm]?\\s+views",
         Pattern.CASE_INSENSITIVE
     )
-
     private val AT_CHANNEL_PATTERN = Pattern.compile(
         "([A-Z][^\\n@]{10,150})\\s{1,4}@[\\w]{2,50}(?:\\s|$)"
     )
+    private val URL_PATTERN = Pattern.compile(
+        "(?:v=|youtu\\.be/|shorts/)([a-zA-Z0-9_-]{11})"
+    )
 
-    private val URL_PATTERN = Pattern.compile("(?:v=|youtu\\.be/|shorts/)([a-zA-Z0-9_-]{11})")
+    // ═══════════════════════════════════════════════════════════════════════
+    // DATA CLASS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private data class ShortsInfo(val title: String, val channel: String)
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // LIFECYCLE
+    // ═══════════════════════════════════════════════════════════════════════
 
     override fun onServiceConnected() {
-        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         println("[CF_SERVICE] ✓ Connected — monitoring YouTube")
     }
 
@@ -188,75 +157,66 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
         val now = System.currentTimeMillis()
         if (lastSentTitle.isNotEmpty() && (now - lastSentTimeMs) > TITLE_RESET_MS) {
-            println("[CF_SERVICE] ↺ Reset title memory after timeout")
-            lastSentTitle = ""
-            lastSentTimeMs = 0L
+            lastSentTitle          = ""
+            lastSentTimeMs         = 0L
+            lastExtractedShortsKey  = ""
+            lastShortsScreenHash   = 0
         }
 
-        // ── Strategy 0: Direct video ID from event text ───────────────────────
+        val root    = rootInActiveWindow ?: return
+        val allText = collectAllNodeText(root)
+        root.recycle()
+
+        // ── Guard: skip duplicate screen states ──────────────────────────
+        if (allText == lastGuardText && lastGuardResult) return
+        val isAdOrComment = isAdPlaying(allText) || isCommentSectionVisible(allText)
+        lastGuardText   = allText
+        lastGuardResult = isAdOrComment
+        if (isAdOrComment) return
+
+        // ── Shorts detection (checked first — no video-ID scan on Shorts) ─
+        // isRealShortsScreen: "Shorts" tab label present AND at least two of
+        // the persistent Shorts action buttons are visible — this rules out the
+        // Subscriptions feed notification banner which also contains "Shorts".
+        val isShorts = allText.contains("Shorts") &&
+                !allText.contains("views", ignoreCase = true) &&
+                isRealShortsScreen(allText)
+        if (isShorts) {
+            // Fast-path: skip node walk if screen content hasn't changed.
+            val screenHash = allText.hashCode()
+            if (screenHash != lastShortsScreenHash) {
+                lastShortsScreenHash = screenHash
+                val info = extractShortsInfo(allText)
+                if (info != null &&
+                    info.title != lastSentTitle &&
+                    info.title != shortsPendingTitle
+                ) {
+                    shortsPendingTitle = info.title
+                    println("[CF_SERVICE] ✓ [SHORTS] title='${info.title}' channel='${info.channel}'")
+                    enqueue(info.title, PRIORITY_ACTIVE) { doDispatchTitle(info.title, info.channel) }
+                }
+            }
+            return   // always return on Shorts screen — never fall through to long-form strategies
+        }
+
+        // ── Strategy 0: Direct video ID from event text ──────────────────
         val eventText = event.text?.joinToString(" ") ?: ""
-        val urlMatch = URL_PATTERN.matcher(eventText)
+        val urlMatch  = URL_PATTERN.matcher(eventText)
         if (urlMatch.find()) {
             val videoId = urlMatch.group(1) ?: return
             enqueue(videoId, PRIORITY_PLAYING) { doHandleVideoId(videoId) }
             return
         }
 
-        // ── Strategy 0b: Check event source node ──────────────────────────────
-        val sourceNode = event.source
-        if (sourceNode != null) {
-            val sourceVideoId = extractVideoIdFromSourceNode(sourceNode)
-            sourceNode.recycle()
-            if (sourceVideoId != null) {
-                enqueue(sourceVideoId, PRIORITY_PLAYING) { doHandleVideoId(sourceVideoId) }
-                return
-            }
-        }
-
-        val root = rootInActiveWindow ?: return
-        val allText = collectAllNodeText(root)
-
-        // ── Guard: skip duplicate screen states ───────────────────────────────
-        if (allText == lastGuardText && lastGuardResult) {
-            root.recycle()
-            return
-        }
-        val isAdOrComment = isAdPlaying(allText) || isCommentSectionVisible(allText)
-        lastGuardText = allText
-        lastGuardResult = isAdOrComment
-        if (isAdOrComment) {
-            root.recycle()
+        // ── Strategy 1: Video ID in full node tree ────────────────────────
+        val urlInTree = URL_PATTERN.matcher(allText)
+        if (urlInTree.find()) {
+            val videoId = urlInTree.group(1) ?: return
+            enqueue(videoId, PRIORITY_PLAYING) { doHandleVideoId(videoId) }
             return
         }
 
-        // ── Strategy 1: Video ID in tree ──────────────────────────────────────
-        val playerVideoId = extractPlayerVideoId(allText)
-        root.recycle()
-
-        if (playerVideoId != null) {
-            enqueue(playerVideoId, PRIORITY_PLAYING) { doHandleVideoId(playerVideoId) }
-            return
-        }
-
-        // ── Strategy 2: Shorts — NB-only ──────────────────────────────────────
-        // lastSentTitle is already normalized, so compare directly.
-        val isShorts = allText.contains("Shorts") &&
-                !allText.contains("views", ignoreCase = true)
-        if (isShorts) {
-            val shortsTitle = extractShortsTitle(allText)
-            if (shortsTitle != null
-                && isCleanTitle(shortsTitle)
-                && normalizeTitle(shortsTitle) != lastSentTitle
-                && normalizeTitle(shortsTitle) != normalizeTitle(shortsPendingTitle)
-            ) {
-                shortsPendingTitle = shortsTitle
-                println("[CF_SERVICE] ✓ [SHORTS] $shortsTitle")
-                enqueue(shortsTitle, PRIORITY_ACTIVE) { doDispatchTitleFast(shortsTitle) }
-                return
-            }
-        }
-
-        // ── Strategy 3: Title before view count ───────────────────────────────
+        // ── Strategy 3: Title before view count ──────────────────────────
         val viewsMatch = VIEWS_PATTERN.matcher(allText)
         if (viewsMatch.find()) {
             val t = viewsMatch.group(1)?.trim() ?: return
@@ -266,7 +226,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             }
         }
 
-        // ── Strategy 4: Title before @channel ────────────────────────────────
+        // ── Strategy 4: Title before @channel ────────────────────────────
         val atMatch = AT_CHANNEL_PATTERN.matcher(allText)
         if (atMatch.find()) {
             val t = atMatch.group(1)?.trim() ?: return
@@ -277,109 +237,331 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // URL EXTRACTION
-    // ═══════════════════════════════════════════════════════════════════════════
+    override fun onInterrupt() {
+        currentJob.cancel()
+        lastSentTitle      = ""
+        lastSentTimeMs     = 0L
+        pendingTitle       = ""
+        lastEventTimeMs    = 0L
+        currentPriority        = 0
+        currentTarget          = ""
+        shortsPendingTitle     = ""
+        lastExtractedShortsKey  = ""
+        lastShortsScreenHash   = 0
+    }
 
-    private fun extractVideoIdFromSourceNode(node: AccessibilityNodeInfo, depth: Int = 0): String? {
-        if (depth > 3) return null
+    // ═══════════════════════════════════════════════════════════════════════
+    // SHORTS TITLE + CHANNEL EXTRACTION (node-based, coordinate-targeted)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private data class TextNode(val text: String, val top: Int, val bottom: Int)
+
+    /**
+     * Walks the raw node tree collecting every non-empty text/contentDesc
+     * with its screen bounds. No class filtering — we need everything.
+     */
+    private fun collectTextNodes(node: AccessibilityNodeInfo): List<TextNode> {
+        val result = mutableListOf<TextNode>()
         try {
-            val text = buildString {
-                node.text?.let { append(it).append(" ") }
-                node.contentDescription?.let { append(it) }
+            val rect = android.graphics.Rect()
+            node.getBoundsInScreen(rect)
+
+            val texts = mutableListOf<String>()
+            node.text?.toString()?.trim()?.takeIf { it.isNotEmpty() }?.let { texts += it }
+            node.contentDescription?.toString()?.trim()?.takeIf { it.isNotEmpty() }?.let { texts += it }
+
+            for (t in texts) {
+                if (t.matches(Regex("[\\d.,:\\s]+[KMBkm]?"))) continue
+                result += TextNode(text = t, top = rect.top, bottom = rect.bottom)
             }
-            val m = URL_PATTERN.matcher(text)
-            if (m.find()) return m.group(1)
+
             for (i in 0 until node.childCount) {
                 val child = node.getChild(i) ?: continue
-                val result = extractVideoIdFromSourceNode(child, depth + 1)
+                result += collectTextNodes(child)
                 child.recycle()
-                if (result != null) return result
             }
-        } catch (_: Exception) {
-        }
-        return null
+        } catch (_: Exception) { }
+        return result
     }
 
-    private fun extractPlayerVideoId(allText: String): String? {
-        val matcher = URL_PATTERN.matcher(allText)
-        val viewsIndicators = listOf("views", " ago", "K views", "M views", "B views")
-        while (matcher.find()) {
-            val videoId = matcher.group(1) ?: continue
-            val matchStart = matcher.start()
-            val matchEnd = matcher.end()
-            val windowStart = maxOf(0, matchStart - 400)
-            val windowEnd = minOf(allText.length, matchEnd + 400)
-            val window = allText.substring(windowStart, windowEnd)
-            if (viewsIndicators.any { window.contains(it, ignoreCase = true) }) {
-                println("[CF_SERVICE] ✓ [TREE-VERIFIED] $videoId (view-count correlated)")
-                return videoId
-            }
-        }
-        return null
-    }
+    private fun extractShortsInfo(allText: String): ShortsInfo? {
+        val root = rootInActiveWindow ?: return null
+        val nodes = collectTextNodes(root)
+        root.recycle()
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // SHORTS TITLE EXTRACTION
-    // ═══════════════════════════════════════════════════════════════════════════
+        if (nodes.isEmpty()) return null
 
-    private fun extractShortsTitle(allText: String): String? {
-        val uiLabels = setOf(
-            "shorts", "home", "explore", "subscriptions", "library",
+        // ── Runtime screen dimensions ─────────────────────────────────────
+        // All pixel thresholds are derived from the actual screen height so that
+        // the function works correctly across:
+        //   • phones vs tablets (different resolutions)
+        //   • portrait vs landscape (screen height changes on rotation)
+        val screenHeight = resources.displayMetrics.heightPixels
+
+        // The Shorts overlay UI (title + channel row) always sits in the bottom
+        // ~20–97% of the screen height regardless of device or orientation.
+        //
+        //  SETTLED_BOTTOM_MIN  — nodes above this are top-of-screen chrome
+        //  SETTLED_BOTTOM_MAX  — nodes below this are off-screen / animating in
+        //  CHANNEL_ROW_TARGET  — expected Y position of the @channel handle row
+        //  NEIGHBOUR_TOLERANCE — how many px below channelNode.bottom we still trust
+        val SETTLED_BOTTOM_MIN   = (screenHeight * 0.72).toInt()   // ~72% down
+        val SETTLED_BOTTOM_MAX   = (screenHeight * 0.97).toInt()   // ~97% down
+        val CHANNEL_ROW_TARGET   = (screenHeight * 0.87).toInt()   // ~87% down
+        val NEIGHBOUR_TOLERANCE  = (screenHeight * 0.18).toInt()   // ~18% of height
+
+        // ── Noise filter: drop pure UI chrome and play-button-like nodes ─
+        // We keep @handle nodes and anything that looks like real content text.
+        val uiExact = setOf(
+            "shorts", "home", "explore", "subscriptions", "library", "you",
             "like", "dislike", "comment", "share", "subscribe", "subscribed",
-            "follow", "more", "pause", "play", "mute", "unmute",
-            "youtube", "search", "remix", "add yours", "save",
+            "follow", "more", "pause", "play", "mute", "unmute", "youtube",
+            "search", "remix", "add yours", "save", "reels", "create",
             "video progress", "progress", "seek bar", "playback",
-            "watch full video", "watch more", "watch now",
-            "affiliate", "shopee", "lazada", "tiktok shop",
-            "best seller", "shop now", "buy now", "order now",
-            "add to cart", "check link", "link in bio",
-            "view comments", "comments", "search",
         )
-        val lines = allText.split("\n")
-            .map { it.trim() }
-            .filter { it.length >= 8 }
-            .filter { line ->
-                val lower = line.lowercase()
-                !uiLabels.any { lower == it } &&
-                        !line.matches(Regex("[\\d.,]+[KMBkm]?")) &&
-                        !line.startsWith("#") &&
-                        !line.matches(Regex("\\d+:\\d+.*")) &&
-                        line.trim().split(" ").filter { it.isNotEmpty() }.size >= 3
+        val uiContains = listOf(
+            "skip ad", "why this ad", "visit advertiser",
+            "new content available", "subscriptions:",
+            "see more videos", "feature not available",
+            "like this video", "dislike this video", "share this video",
+            "comments disabled", "subscribe to @",
+            "please wait", "action menu", "go to channel",
+        )
+
+        val filtered = nodes.filter { n ->
+            val lower = n.text.lowercase()
+            !uiExact.any { lower == it } &&
+                    !uiContains.any { lower.contains(it) } &&
+                    n.text.length >= 2
+        }
+
+        // ── Music label detector ──────────────────────────────────────────
+        fun isMusicLabel(text: String): Boolean {
+            val lower = text.lowercase()
+            return lower.contains("♪") || lower.contains("♫") ||
+                    lower.contains("🎵") || lower.contains("🎶") ||
+                    lower.contains("original audio") || lower.contains("original sound")
+        }
+
+        // ── Seek bar text detector ────────────────────────────────────────
+        // e.g. "0 minutes 6 seconds of 0 minutes 8 seconds"
+        val seekBarRe = Regex(
+            "^\\d+\\s+minutes?\\s+\\d+\\s+seconds?\\s+of\\s+\\d+\\s+minutes?\\s+\\d+\\s+seconds?$",
+            RegexOption.IGNORE_CASE
+        )
+
+        // ── Locate the @channel node ──────────────────────────────────────
+        // Pick the @channel whose bottom is closest to CHANNEL_ROW_TARGET
+        // (derived from real screen height — works for any device/orientation).
+        // During swipe animations multiple @handles may appear; we want the one
+        // anchored in the active overlay zone, not a neighbour sliding in/out.
+        val channelNode = filtered
+            .filter { it.text.startsWith("@") && it.bottom > 0 }
+            .minByOrNull { Math.abs(it.bottom - CHANNEL_ROW_TARGET) }
+            ?: return null
+
+        // ── Collect candidate content nodes ──────────────────────────────
+        // Rules:
+        //  • not the @channel node itself
+        //  • not another @handle
+        //  • not a music label
+        //  • not seek-bar text ("X minutes Y seconds of …")
+        //  • bottom must be within the settled overlay band
+        //  • must not be a neighbour video's node (bottom ≤ channelNode.bottom + tolerance)
+        //  • top < bottom (reject inverted/animating nodes)
+        //  • at least 3 chars
+        //
+        // SETTLED band explanation:
+        //   During swipe animations the title node slides in from below — its
+        //   bottom is inflated or its top > bottom (inverted rect). We only trust
+        //   nodes that have landed inside the stable overlay zone.
+        val maxAllowedBottom = minOf(channelNode.bottom + NEIGHBOUR_TOLERANCE, SETTLED_BOTTOM_MAX)
+
+        val candidates = filtered
+            .filter { it.text != channelNode.text && !it.text.startsWith("@") }
+            .filterNot { it.text.trimStart().startsWith("#") }          // bare hashtag nodes
+            .filterNot { it.text.lowercase().startsWith("search ") }    // YouTube search suggestions
+            .filterNot { isMusicLabel(it.text) }
+            .filterNot { it.text.contains(" · ") }                      // music strip "Song · Artist"
+            .filterNot { seekBarRe.matches(it.text.trim()) }
+            // Only accept nodes within the settled overlay band
+            .filter { it.bottom in SETTLED_BOTTOM_MIN..maxAllowedBottom }
+            .filter { it.top < it.bottom }   // reject inverted/animating nodes
+            .filter { it.text.length >= 3 }
+            .sortedByDescending { it.bottom }
+
+        if (candidates.isEmpty()) return null
+
+        // ── Detect music strip ────────────────────────────────────────────
+        val hasMusicStrip = filtered
+            .filter { it.top >= channelNode.top && it.bottom <= SETTLED_BOTTOM_MAX && isMusicLabel(it.text) }
+            .isNotEmpty()
+
+        // ── Positional pick ───────────────────────────────────────────────
+        // Keep hashtags attached — they help the classifier understand the topic.
+        // Strip only invisible zero-width chars.
+        val titleRaw   = candidates[0].text
+        val titleClean = titleRaw
+            .replace(Regex("[​‌‍﻿]"), "")
+            .trim()
+
+        if (titleClean.length < 3) return null
+
+        // ── Dedup: skip if same title+channel as last resolved result ─────
+        val key = "${channelNode.text}|$titleClean"
+        if (key == lastExtractedShortsKey) return null
+        lastExtractedShortsKey = key
+
+        println("[CF_SERVICE] ✓ [SHORTS] screenH=$screenHeight settled=$SETTLED_BOTTOM_MIN..$SETTLED_BOTTOM_MAX channelRow=$CHANNEL_ROW_TARGET")
+        return ShortsInfo(title = titleClean, channel = channelNode.text)
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GUARDS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Returns true only when the Shorts player is actually on screen.
+     * Reads contentDescriptions directly from the unfiltered node tree so
+     * action buttons (like/dislike/share) are always visible.
+     */
+    private fun isRealShortsScreen(allText: String): Boolean {
+        val root = rootInActiveWindow ?: return false
+        val nodes = collectTextNodes(root)
+        root.recycle()
+        val combined = nodes.joinToString(" ") { it.text }.lowercase()
+        val shortsUiSignals = listOf(
+            "like", "dislike", "comment", "share", "remix",
+            "add yours", "mute", "pause", "play", "seek bar", "video progress"
+        )
+        val matchCount = shortsUiSignals.count { combined.contains(it) }
+        return matchCount >= 2
+    }
+
+    private fun isAdPlaying(allText: String): Boolean =
+        listOf("Skip Ads", "Skip ad", "Ad ·", "Why this ad",
+            "Stop seeing this ad", "Visit advertiser", "Skip in")
+            .any { allText.contains(it, ignoreCase = true) }
+
+    private fun isCommentSectionVisible(allText: String): Boolean =
+        listOf("Add a comment", "Top comments", "Newest first", "Sort comments",
+            "Be the first to comment", "Pinned comment",
+            "Show more replies", "Load more comments")
+            .any { allText.contains(it, ignoreCase = true) }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private fun collectAllNodeText(node: AccessibilityNodeInfo): String {
+        val sb = StringBuilder()
+        try {
+            val className    = node.className?.toString() ?: ""
+            val isSkipped    = SKIP_NODE_CLASSES.any { className.endsWith(it.substringAfterLast('.')) }
+            val textLen      = node.text?.length ?: 0
+            val isButtonLike = node.isClickable && textLen in 1..25 && node.childCount == 0
+            if (!isSkipped && !isButtonLike) {
+                node.text?.let { sb.append(it).append("\n") }
+                node.contentDescription?.let { sb.append(it).append("\n") }
             }
-        return lines.firstOrNull { isCleanTitle(it) }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                sb.append(collectAllNodeText(child))
+                child.recycle()
+            }
+        } catch (_: Exception) { }
+        return sb.toString()
     }
 
-    private fun searchNodeForShortsId(node: AccessibilityNodeInfo, pattern: Regex): String? {
-        val text = node.text?.toString() ?: ""
-        val desc = node.contentDescription?.toString() ?: ""
-        for (str in listOf(text, desc)) {
-            val match = pattern.find(str)
-            if (match != null) return match.groupValues[1]
+    /**
+     * Returns true if the given skip-term matches [text] in a way that should
+     * block it from being treated as a video title.
+     *
+     * Short single-word UI terms (defined in SKIP_TITLES_WHOLE_WORD) are matched
+     * as whole words only, so "Subscribe" does NOT block "subscriber", and
+     * "seconds" does NOT block "split seconds record".
+     *
+     * All other (multi-word or punctuated) SKIP_TITLES entries use the original
+     * plain substring match because they are specific enough to avoid false
+     * positives.
+     */
+    private fun skipTitleMatches(text: String, skipTerm: String): Boolean {
+        return if (skipTerm in SKIP_TITLES_WHOLE_WORD) {
+            SKIP_TITLES_WHOLE_WORD_RE.containsMatchIn(text)
+                    // containsMatchIn checks all words in one pass; we only want to
+                    // fire for THIS specific skipTerm, so verify it independently.
+                    && Regex("(?i)\\b${Regex.escape(skipTerm)}\\b").containsMatchIn(text)
+        } else {
+            text.contains(skipTerm, ignoreCase = true)
         }
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val result = searchNodeForShortsId(child, pattern)
-            child.recycle()
-            if (result != null) return result
-        }
-        return null
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
+    private fun isCleanTitle(text: String): Boolean {
+        if (text.length < 8 || text.length > 200) return false
+        if (SKIP_TITLES.any { skipTitleMatches(text, it) }) return false
+        val lowerText = text.lowercase()
+        if (lowerText.contains(" thousand views") || lowerText.contains("- play short") ||
+            lowerText.contains("affiliate")       || lowerText.contains("shopee") ||
+            lowerText.contains("lazada")           || lowerText.contains("best seller") ||
+            lowerText.contains("buy now")          || lowerText.contains("order now") ||
+            lowerText.contains("link in bio")      ||
+            lowerText.contains("say goodbye to")   || lowerText.contains("one pair for") ||
+            lowerText.contains("years younger")    || lowerText.contains("skin look") ||
+            lowerText.contains("suitable for all") || lowerText.contains("all skin types") ||
+            lowerText.startsWith("search ") ||
+            (lowerText.startsWith("view ") && lowerText.contains("comment")) ||
+            lowerText.contains("palawan")          || lowerText.contains("sangla") ||
+            lowerText.startsWith("helps ")         ||
+            lowerText.startsWith("get ") && text.length < 60 ||
+            lowerText.startsWith("try ") && text.length < 50
+        ) return false
+        // Note: hashtag stripping is done before isCleanTitle is called for Shorts
+        if (Regex("[A-Za-z]{1,4}-?\\d{4,}[A-Za-z0-9]*").containsMatchIn(text)) return false
+        if (Regex("^[A-Z][a-zA-Z]+ [·•] [A-Z][a-zA-Z]+$").containsMatchIn(text)) return false
+        if (CHANNEL_HANDLE_RE.matches(text.trim())) return false
+        if (text.trim().split(Regex("\\s+")).size < 2) return false
+        return true
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PAUSE CONTROL
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * Pauses YouTube then navigates home to fully remove the blocked video.
+     * Must run on the main thread — dispatched via mainHandler from IO coroutines.
+     */
+    private fun blockYouTubeVideo() {
+        mainHandler.post {
+            // 1. Hit the play/pause button to stop playback
+            val root = rootInActiveWindow
+            if (root != null) {
+                root.findAccessibilityNodeInfosByViewId(
+                    "com.google.android.youtube:id/player_control_play_pause_replay_button"
+                ).firstOrNull()?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                root.recycle()
+            }
+            // 2. After a short delay, go to home screen so the video is off screen
+            mainHandler.postDelayed({
+                performGlobalAction(GLOBAL_ACTION_HOME)
+            }, 300)
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // PRIORITY QUEUE
-    // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
 
     private fun enqueue(target: String, priority: Int, block: suspend () -> Unit) {
         synchronized(this) {
             when {
                 target == currentTarget && currentJob.isActive -> Unit
                 priority > currentPriority && currentJob.isActive -> {
-                    println("[QUEUE] ⬆ P$priority cancels: ${currentTarget.take(35)}")
                     currentJob.cancel()
                     startJob(target, priority, block)
                 }
-
                 !currentJob.isActive -> startJob(target, priority, block)
                 else -> Unit
             }
@@ -387,30 +569,28 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     private fun startJob(target: String, priority: Int, block: suspend () -> Unit) {
-        currentTarget = target
+        currentTarget   = target
         currentPriority = priority
         currentJob = scope.launch {
-            try {
-                block()
-            } finally {
+            try { block() }
+            finally {
                 synchronized(this@ChildFocusAccessibilityService) {
                     if (currentTarget == target) {
                         currentPriority = 0
-                        currentTarget = ""
+                        currentTarget   = ""
                     }
                 }
             }
         }
-        println("[QUEUE] ▶ [P$priority]: ${target.take(40)}")
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
     // WORKERS
-    // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
 
     private suspend fun doHandleVideoId(videoId: String) {
         if (videoId == lastSentTitle) return
-        lastSentTitle = videoId
+        lastSentTitle  = videoId
         lastSentTimeMs = System.currentTimeMillis()
         println("[CF_SERVICE] ✓ [PLAYING] $videoId")
         broadcastResult(videoId, "Analyzing", 0f, false)
@@ -422,253 +602,42 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         )
     }
 
-    /**
-     * Worker for regular video title detection (Strategies 3 & 4).
-     *
-     * EARLY LOCK: lastSentTitle = normalizeTitle(title) is set BEFORE delay().
-     * This prevents the full player title ("Title - Subtitle | Channel") from
-     * firing a second classification during the 1500ms debounce window.
-     */
-    private suspend fun doDispatchTitle(title: String) {
-        val normalized = normalizeTitle(title)
-        if (title.length < 8 || normalized == lastSentTitle) return
-
-        // Early lock — claim before debounce
-        lastSentTitle = normalized
-        lastSentTimeMs = System.currentTimeMillis()
-
-        pendingTitle = title
+    private suspend fun doDispatchTitle(title: String, channel: String = "") {
+        if (title.length < 8 || title == lastSentTitle) return
+        pendingTitle    = title
         lastEventTimeMs = System.currentTimeMillis()
-
         delay(DEBOUNCE_MS)
-
         if (!currentJob.isActive) return
         if (pendingTitle != title) return
         if ((System.currentTimeMillis() - lastEventTimeMs) < DEBOUNCE_MS) return
-
+        lastSentTitle      = title
         shortsPendingTitle = ""
-        println("[CF_SERVICE] ✓ [ACTIVE] $title")
-
+        lastSentTimeMs     = System.currentTimeMillis()
+        println("[CF_SERVICE] ✓ [ACTIVE] title='$title' channel='$channel'")
         broadcastResult(title, "Analyzing", 0f, false)
         if (!currentJob.isActive) return
-
-        classifyByTitle(title)
+        classifyByTitle(title, channel)
     }
 
-    /**
-     * Worker for Shorts title detection (Strategy 2).
-     *
-     * EARLY LOCK: Same reason as doDispatchTitle(). When a Short is detected in
-     * the search feed and the user clicks it within 1500ms, YouTube fires the full
-     * player title "Title - Subtitle | Channel" before the debounce expires. The
-     * early lock prevents that event from starting a second classification.
-     */
-    private suspend fun doDispatchTitleFast(title: String) {
-        val normalized = normalizeTitle(title)
-        if (title.length < 8 || normalized == lastSentTitle) return
-
-        // Early lock — claim before debounce
-        lastSentTitle = normalized
-        lastSentTimeMs = System.currentTimeMillis()
-
-        pendingTitle = title
-        lastEventTimeMs = System.currentTimeMillis()
-
-        delay(DEBOUNCE_MS)
-
-        if (!currentJob.isActive) return
-        if (pendingTitle != title) return
-        if ((System.currentTimeMillis() - lastEventTimeMs) < DEBOUNCE_MS) return
-
-        shortsPendingTitle = ""
-        println("[CF_SERVICE] ✓ [SHORTS-FAST] $title")
-
-        broadcastResult(title, "Analyzing", 0f, false)
-        if (!currentJob.isActive) return
-
-        classifyFastByTitle(title)
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // GUARDS
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    private fun isAdPlaying(allText: String): Boolean =
-        listOf(
-            "Skip Ads", "Skip ad", "Ad ·", "Why this ad",
-            "Stop seeing this ad", "Visit advertiser", "Skip in"
-        )
-            .any { allText.contains(it, ignoreCase = true) }
-
-    private fun isCommentSectionVisible(allText: String): Boolean =
-        listOf(
-            "Add a comment", "Top comments", "Newest first",
-            "Sort comments", "Be the first to comment",
-            "Pinned comment", "Show more replies", "Load more comments"
-        )
-            .any { allText.contains(it, ignoreCase = true) }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // HELPERS
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    private fun collectAllNodeText(node: AccessibilityNodeInfo): String {
-        val sb = StringBuilder()
-        try {
-            val className = node.className?.toString() ?: ""
-            val isSkipped = SKIP_NODE_CLASSES.any { className.endsWith(it.substringAfterLast('.')) }
-            val textLen = node.text?.length ?: 0
-            val isButtonLike = node.isClickable && textLen in 1..25 && node.childCount == 0
-            if (!isSkipped && !isButtonLike) {
-                node.text?.let { sb.append(it).append("\n") }
-                node.contentDescription?.let { sb.append(it).append("\n") }
-            }
-            for (i in 0 until node.childCount) {
-                val child = node.getChild(i) ?: continue
-                sb.append(collectAllNodeText(child))
-                child.recycle()
-            }
-        } catch (_: Exception) {
-        }
-        return sb.toString()
-    }
-
-    /**
-     * Normalizes a title for dedup comparison ONLY — never sent to Flask.
-     *
-     * Strips the " | Channel" and " - Subtitle" suffixes YouTube appends in the
-     * full player title, then lowercases. Ensures the same video detected at
-     * different points (feed card, player loading, full title) maps to one entry.
-     *
-     * Examples:
-     *   "You Grow Girl! - Spring Motivation with Sixteen | Numberblocks" → "you grow girl!"
-     *   "you grow girl! - spring motivation with sixteen"                → "you grow girl!"
-     *   "WINE 11 - play Short"                                           → "wine 11"
-     */
-    private fun normalizeTitle(raw: String): String =
-        raw.substringBefore(" | ")
-            .substringBefore(" - ")
-            .lowercase()
-            .trim()
-
-    private fun isCleanTitle(text: String): Boolean {
-        // ── NEW FILTERS (must be FIRST) ───────────────────────────────────────
-        // Block subtitle fragments: "throughout your app", "so you can rapidly build"
-        if (text.isNotEmpty() && text[0].isLowerCase()) return false
-
-        // Block caption sentences: "Firebase is here to help.", "AI is changing the world."
-        if (text.trimEnd().endsWith(".")) return false
-
-        // ── EXISTING FILTERS (unchanged) ──────────────────────────────────────
-        if (text.length < 8 || text.length > 200) return false
-        if (SKIP_TITLES.any { text.contains(it, ignoreCase = true) }) return false
-
-        val lowerText = text.lowercase()
-        if (lowerText.contains("affiliate") ||
-            lowerText.contains("shopee") ||
-            lowerText.contains("lazada") ||
-            lowerText.contains("best seller") ||
-            lowerText.contains("tap to watch") ||
-            lowerText.contains("watch live") ||
-            lowerText.contains("tap to watch live") ||
-            lowerText.contains("new content available") ||
-            lowerText.contains("buy now") ||
-            lowerText.contains("order now") ||
-            lowerText.contains("link in bio") ||
-            lowerText.contains("say goodbye to") ||
-            lowerText.contains("one pair for") ||
-            lowerText.contains("years younger") ||
-            lowerText.contains("skin look") ||
-            lowerText.contains("suitable for all") ||
-            lowerText.contains("all skin types") ||
-            lowerText.startsWith("search ") ||
-            (lowerText.startsWith("view ") && lowerText.contains("comment")) ||
-            lowerText.contains("palawan") ||
-            lowerText.contains("sangla") ||
-            lowerText.startsWith("helps ") ||
-            lowerText.startsWith("get ") && text.length < 60 ||
-            lowerText.startsWith("try ") && text.length < 50
-        ) {
-            return false
-        }
-
-        if (Regex("[A-Za-z]{1,4}-?\\d{4,}[A-Za-z0-9]*").containsMatchIn(text)) return false
-        if (Regex("^[A-Z][a-zA-Z]+ [·•] [A-Z][a-zA-Z]+$").containsMatchIn(text)) return false
-        if (CHANNEL_HANDLE_RE.matches(text.trim())) return false
-        if (text.trim().split(Regex("\\s+")).size < 2) return false
-
-        return true
-    }
-
-
-    private fun jaccardSimilarity(a: String, b: String): Double {
-        val aWords = a.lowercase().split(Regex("\\s+")).filter { it.length > 2 }.toSet()
-        val bWords = b.lowercase().split(Regex("\\s+")).filter { it.length > 2 }.toSet()
-        if (aWords.isEmpty() && bWords.isEmpty()) return 1.0
-        if (aWords.isEmpty() || bWords.isEmpty()) return 0.0
-        val intersection = aWords.intersect(bWords).size.toDouble()
-        val union = aWords.union(bWords).size.toDouble()
-        return intersection / union
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
     // NETWORK
-    // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
 
-    private fun classifyByTitle(detectedTitle: String) {
+    private fun classifyByTitle(title: String, channel: String = "") {
         try {
-            val body = JSONObject().apply { put("title", detectedTitle) }
+            val body = JSONObject().apply {
+                put("title", title)
+                if (channel.isNotEmpty()) put("channel", channel)
+            }
             val request = Request.Builder()
                 .url("$BASE_URL/classify_by_title")
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
                 .build()
             val response = http.newCall(request).execute()
             val json = JSONObject(response.body?.string() ?: return)
-
-            val returnedTitle = json.optString("video_title", "").trim()
-            if (returnedTitle.isNotEmpty()) {
-                val similarity = jaccardSimilarity(detectedTitle, returnedTitle)
-                println(
-                    "[CF_SERVICE] Title similarity: " +
-                            "'${detectedTitle.take(40)}' vs '${returnedTitle.take(40)}' = " +
-                            "%.2f".format(similarity)
-                )
-                if (similarity < TITLE_SIMILARITY_THRESHOLD) {
-                    println(
-                        "[CF_SERVICE] ⚠ Mismatch — falling back to classify_fast for: ${
-                            detectedTitle.take(
-                                50
-                            )
-                        }"
-                    )
-                    classifyFastByTitle(detectedTitle)
-                    return
-                }
-            }
             handleClassificationResult(json)
         } catch (e: Exception) {
             println("[CF_SERVICE] ✗ classify_by_title: ${e.message}")
-            classifyFastByTitle(detectedTitle)
-        }
-    }
-
-    private fun classifyFastByTitle(title: String) {
-        try {
-            val body = JSONObject().apply { put("title", title) }
-            val request = Request.Builder()
-                .url("$BASE_URL/classify_fast")
-                .post(body.toString().toRequestBody("application/json".toMediaType()))
-                .build()
-            val response = http.newCall(request).execute()
-            val json = JSONObject(response.body?.string() ?: return)
-
-            val label = json.optString("oir_label", json.optString("label", "Neutral"))
-            val score = json.optDouble("score_nb", 0.5).toFloat()
-
-            println("[CF_SERVICE] ✓ [FAST] '${title.take(50)}' → $label ($score)")
-            broadcastResult(title, label, score, false)
-        } catch (e: Exception) {
-            println("[CF_SERVICE] ✗ classify_fast: ${e.message}")
         }
     }
 
@@ -691,22 +660,21 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     private fun handleClassificationResult(json: JSONObject) {
-        val label = json.optString("oir_label", "Neutral")
-        val score = json.optDouble("score_final", 0.5)
-        val cached = json.optBoolean("cached", false)
+        val label   = json.optString("oir_label", "Neutral")
+        val score   = json.optDouble("score_final", 0.5)
+        val cached  = json.optBoolean("cached", false)
         val videoId = json.optString("video_id", "unknown")
-
         println("[CF_SERVICE] $videoId → $label ($score) cached=$cached")
-        broadcastResult(videoId, label, score.toFloat(), cached)
 
-        // ── NEW: Show overlay for overstimulating content ────────────────────
-        if (label.equals("Overstimulating", ignoreCase = true) && score >= 0.75) {
-            mainHandler.post {
-                showBlockOverlay(videoId, score.toFloat())
-            }
+        // ── Pause YouTube immediately when overstimulating content detected ─
+        val isBlocked = label.equals("Overstimulating", ignoreCase = true) ||
+                label.equals("Overstimulation",  ignoreCase = true)
+        if (isBlocked) {
+            blockYouTubeVideo()
         }
-    }
 
+        broadcastResult(videoId, label, score.toFloat(), cached)
+    }
 
     private fun broadcastResult(videoId: String, label: String, score: Float, cached: Boolean) {
         val intent = Intent("com.childfocus.CLASSIFICATION_RESULT").apply {
@@ -717,157 +685,4 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // OVERLAY MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    private fun showBlockOverlay(videoId: String, score: Float) {
-        // Don't stack overlays
-        if (overlayView != null) return
-
-        // Permission check — open settings if missing
-        if (!android.provider.Settings.canDrawOverlays(this)) {
-            val intent = Intent(
-                android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-            return
-        }
-
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT
-        )
-
-        val inflater = LayoutInflater.from(this)
-        overlayView = inflater.inflate(R.layout.overlay_blocked, null, false)
-
-
-        // Show OIR score for transparency
-        overlayView?.findViewById<TextView>(R.id.tvScore)?.text =
-            "OIR Score: ${"%.2f".format(score)} (threshold: 0.75)"
-
-        // Dismiss button
-        overlayView?.findViewById<Button>(R.id.btnClose)?.setOnClickListener {
-            removeOverlay()
-        }
-
-        windowManager.addView(overlayView, params)
-
-        // Fetch safe suggestions in background
-        fetchAndShowSuggestions(videoId)
-    }
-
-    private fun removeOverlay() {
-        overlayView?.let {
-            windowManager.removeView(it)
-            overlayView = null
-        }
-    }
-
-    private fun fetchAndShowSuggestions(excludeVideoId: String) {
-        scope.launch {
-            try {
-                val url = "$BASE_URL/safe_suggestions?limit=3&exclude=$excludeVideoId"
-                val request = Request.Builder().url(url).get().build()
-                val response = http.newCall(request).execute()
-                val json = JSONObject(response.body?.string() ?: return@launch)
-
-                val suggestionsArray = json.optJSONArray("suggestions") ?: return@launch
-                val suggestions = mutableListOf<VideoSuggestion>()
-
-                for (i in 0 until suggestionsArray.length()) {
-                    val item = suggestionsArray.getJSONObject(i)
-                    suggestions.add(
-                        VideoSuggestion(
-                            videoId = item.getString("video_id"),
-                            label = item.getString("label"),
-                            finalScore = item.getDouble("final_score").toFloat(),
-                            title = item.optString("video_title", "Educational Video")
-                        )
-                    )
-                }
-
-                // Update UI on main thread
-                mainHandler.post {
-                    displaySuggestions(suggestions)
-                }
-            } catch (e: Exception) {
-                println("[CF_SERVICE] ✗ /safe_suggestions fetch: ${e.message}")
-                mainHandler.post {
-                    overlayView?.findViewById<ProgressBar>(R.id.pbSuggestions)?.visibility =
-                        View.GONE
-                }
-            }
-        }
-    }
-
-    private fun displaySuggestions(suggestions: List<VideoSuggestion>) {
-        val container = overlayView?.findViewById<LinearLayout>(R.id.llSuggestions) ?: return
-        overlayView?.findViewById<ProgressBar>(R.id.pbSuggestions)?.visibility = View.GONE
-
-        suggestions.forEach { video ->
-            val card = TextView(this).apply {
-                text = "▶  ${video.title.take(30)}"
-                textSize = 13f
-                setTextColor(android.graphics.Color.WHITE)
-                setPadding(16, 12, 16, 12)
-                setBackgroundColor(android.graphics.Color.parseColor("#3388FF88"))
-                layoutParams = LinearLayout.LayoutParams(
-                    0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f
-                ).also { it.marginEnd = 8 }
-
-                setOnClickListener {
-                    // Open YouTube to the safe video
-                    val intent = Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("https://www.youtube.com/watch?v=${video.videoId}")
-                    )
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(intent)
-                    removeOverlay()
-                }
-            }
-            container.addView(card)
-        }
-    }
-
-    // Data class for suggestions response
-    private data class VideoSuggestion(
-        val videoId: String,
-        val label: String,
-        val finalScore: Float,
-        val title: String
-    )
-
-
-    override fun onInterrupt() {
-        println("[CF_SERVICE] Interrupted")
-
-        // ── NEW: Clean up overlay ────────────────────────────────────────────
-        mainHandler.post { removeOverlay() }
-
-        currentJob.cancel()
-        lastSentTitle = ""
-        lastSentTimeMs = 0L
-        pendingTitle = ""
-        lastEventTimeMs = 0L
-        currentPriority = 0
-        currentTarget = ""
-        shortsPendingTitle = ""
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        mainHandler.post { removeOverlay() }
-    }
-
 }

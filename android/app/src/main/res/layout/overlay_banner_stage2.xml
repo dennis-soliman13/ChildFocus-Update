@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="#CC1A1A2E"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="14dp"
+    android:gravity="center_vertical">
+
+    <!-- Shield icon -->
+    <ImageView
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:src="@drawable/ic_childfocus_shield"
+        android:layout_marginEnd="12dp"/>
+
+    <!-- Text block -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="How about something different?"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="You've been watching a lot of exciting videos."
+            android:textSize="12sp"
+            android:textColor="#BBFFFFFF"
+            android:layout_marginTop="2dp"/>
+
+    </LinearLayout>
+
+    <!-- Subtle indicator dot (auto-dismiss, no button needed) -->
+    <View
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:background="@drawable/circle_dot"
+        android:layout_marginStart="12dp"/>
+
+</LinearLayout>

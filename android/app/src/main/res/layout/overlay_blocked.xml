@@ -1,76 +1,99 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout 
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp"
-    android:background="#EE000000">
+    android:background="#EE000000"
+    android:padding="28dp"
+    android:gravity="center">
 
-    <!-- Block message header -->
+    <!-- Shield Icon -->
+    <ImageView
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/ic_childfocus_shield"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Main blocked / break title -->
     <TextView
         android:id="@+id/tvBlocked"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Content Blocked"
-        android:textSize="22sp"
-        android:textColor="#FFFFFF"
+        android:textSize="24sp"
         android:textStyle="bold"
-        android:gravity="center"/>
+        android:textColor="#FFFFFF"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
 
-    <TextView
-        android:id="@+id/tvReason"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="This video was flagged as overstimulating."
-        android:textSize="14sp"
-        android:textColor="#CCFFFFFF"
-        android:gravity="center"/>
-
+    <!-- OIR score (long-form) or message (Stage 3) -->
     <TextView
         android:id="@+id/tvScore"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
         android:text=""
-        android:textSize="12sp"
-        android:textColor="#99FFFFFF"
-        android:gravity="center"/>
+        android:textSize="13sp"
+        android:textColor="#AAFFFFFF"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
 
-    <!-- Safe suggestions section -->
+    <!-- Countdown timer — visible only during Stage 3 cooldown -->
+    <TextView
+        android:id="@+id/tvCountdown"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="#FFD700"
+        android:gravity="center"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="24dp"
+        android:visibility="gone"/>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"
+        android:layout_marginBottom="20dp"/>
+
+    <!-- Suggestions label -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="28dp"
-        android:layout_marginBottom="12dp"
         android:text="Watch something better instead:"
-        android:textSize="13sp"
-        android:textColor="#CCFFFFFF"/>
+        android:textSize="14sp"
+        android:textColor="#CCFFFFFF"
+        android:layout_marginBottom="12dp"/>
 
-    <!-- Container for suggestion cards (populated programmatically) -->
+    <!-- Loading spinner while suggestions fetch -->
+    <ProgressBar
+        android:id="@+id/pbSuggestions"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:indeterminateTint="#FFFFFF"
+        android:visibility="visible"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Suggestion buttons injected at runtime -->
     <LinearLayout
         android:id="@+id/llSuggestions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"/>
+        android:orientation="vertical"
+        android:layout_marginBottom="24dp"/>
 
-    <!-- Loading spinner while fetching suggestions -->
-    <ProgressBar
-        android:id="@+id/pbSuggestions"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:visibility="visible"/>
-
+    <!-- Dismiss button — hidden for Stage 3, shown for long-form -->
     <Button
         android:id="@+id/btnClose"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
         android:text="Dismiss"
-        android:backgroundTint="#44FFFFFF"
-        android:textColor="#FFFFFF"/>
+        android:textColor="#000000"
+        android:backgroundTint="#FFFFFF"
+        android:paddingHorizontal="32dp"
+        android:layout_marginTop="8dp"/>
 
 </LinearLayout>
