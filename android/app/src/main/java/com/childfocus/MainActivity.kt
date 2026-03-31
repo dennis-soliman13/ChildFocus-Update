@@ -1,6 +1,9 @@
 package com.childfocus
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -11,19 +14,39 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import com.childfocus.ui.theme.ChildFocusTheme
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.childfocus.ui.LandingScreen
 import com.childfocus.ui.SafetyModeScreen
+import com.childfocus.ui.theme.ChildFocusTheme
 import com.childfocus.viewmodel.SafetyViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val viewModel: SafetyViewModel by viewModels()
 
+    private val classificationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val videoId = intent.getStringExtra("video_id") ?: "unknown"
+            val label   = intent.getStringExtra("oir_label") ?: "Neutral"
+            val score   = intent.getFloatExtra("score_final", 0f)
+            val cached  = intent.getBooleanExtra("cached", false)
+
+            when {
+                label.equals("Analyzing", ignoreCase = true) ->
+                    viewModel.setAnalyzing(videoId)
+                label.equals("Overstimulating", ignoreCase = true) ->
+                    viewModel.setBlocked(videoId, score)
+                label.equals("error", ignoreCase = true) ->
+                    viewModel.setError(videoId)
+                else ->
+                    viewModel.setAllowed(label, score, cached)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ── Request POST_NOTIFICATIONS (required on Android 13+) ─────────────
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
@@ -57,52 +80,42 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Called every time the user returns to the app — including from Accessibility Settings.
-     *
-     * This is the "Proton VPN" moment: as soon as the user flips the toggle in settings
-     * and comes back, onResume fires, we detect the service is now enabled, and the UI
-     * transitions automatically without any extra tap.
-     */
     override fun onResume() {
         super.onResume()
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            classificationReceiver,
+            IntentFilter("com.childfocus.CLASSIFICATION_RESULT")
+        )
         if (isAccessibilityServiceEnabled()) {
             viewModel.onServiceConfirmed()
         }
     }
 
-    /**
-     * The main "Enable Protection" equivalent of Proton VPN's "Connect".
-     *
-     * 1. If service already enabled → activate immediately, no settings trip.
-     * 2. If not → mark UI as waiting, then deep-link to ChildFocus's own
-     *    accessibility settings page (Android 13+) or the generic list (older).
-     */
+    override fun onPause() {
+        super.onPause()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(classificationReceiver)
+    }
+
     private fun enableProtection() {
         if (isAccessibilityServiceEnabled()) {
             viewModel.onServiceConfirmed()
         } else {
             viewModel.setWaitingForService(true)
-            openAccessibilitySettingsForChildFocus()
+            openAccessibilitySettings()
         }
     }
 
-    /**
-     * On Android 13+ deep-links directly to ChildFocus's accessibility detail page
-     * so the user sees exactly ONE toggle — no hunting through a list.
-     * Falls back to the generic list on older Android versions.
-     */
-    private fun openAccessibilitySettingsForChildFocus() {
+    private fun openAccessibilitySettings() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             try {
-                val intent = Intent(Settings.ACTION_ACCESSIBILITY_DETAILS_SETTINGS).apply {
+                val intent = Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS").apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     data = Uri.parse("package:$packageName")
                 }
                 startActivity(intent)
                 return
             } catch (_: Exception) {
-                // Deep-link unavailable on this device — fall through
+                // fall through to generic settings
             }
         }
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {

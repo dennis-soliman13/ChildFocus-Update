@@ -16,8 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.childfocus.viewmodel.ClassifyState
-
+import com.childfocus.viewmodel.SafetyViewModel.ClassifyState
 @Composable
 fun SafetyModeScreen(
     classifyState: ClassifyState,
@@ -64,12 +63,10 @@ fun SafetyModeScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Status card
             StatusCard(classifyState = classifyState, onDismissBlock = onDismissBlock)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Turn off button
             OutlinedButton(
                 onClick = onTurnOff,
                 modifier = Modifier
@@ -103,34 +100,34 @@ private fun StatusCard(
 ) {
     val (bgColor, textColor, title, subtitle) = when (classifyState) {
         is ClassifyState.Idle -> StatusInfo(
-            bg = Color(0xFF1E3A5F),
-            text = Color(0xFF90CAF9),
+            bg    = Color(0xFF1E3A5F),
+            text  = Color(0xFF90CAF9),
             title = "Watching...",
-            sub = "Waiting for YouTube activity"
+            sub   = "Waiting for YouTube activity"
         )
         is ClassifyState.Analyzing -> StatusInfo(
-            bg = Color(0xFF1E3A5F),
-            text = Color(0xFFFFD54F),
+            bg    = Color(0xFF1E3A5F),
+            text  = Color(0xFFFFD54F),
             title = "Analyzing",
-            sub = classifyState.videoId.take(60)
+            sub   = classifyState.videoId.take(60)
         )
         is ClassifyState.Allowed -> StatusInfo(
-            bg = Color(0xFF1B3A2A),
-            text = Color(0xFF81C784),
+            bg    = Color(0xFF1B3A2A),
+            text  = Color(0xFF81C784),
             title = "✓ ${classifyState.label}",
-            sub = "Score: ${"%.2f".format(classifyState.score)} • ${if (classifyState.cached) "Cached" else "Live"}"
+            sub   = "Score: ${"%.2f".format(classifyState.score)} • ${if (classifyState.cached) "Cached" else "Live"}"
         )
         is ClassifyState.Blocked -> StatusInfo(
-            bg = Color(0xFF3E1A1A),
-            text = Color(0xFFEF9A9A),
+            bg    = Color(0xFF3E1A1A),
+            text  = Color(0xFFEF9A9A),
             title = "⛔ Overstimulating Content Blocked",
-            sub = "Score: ${"%.2f".format(classifyState.score)}"
+            sub   = "Score: ${"%.2f".format(classifyState.score)}"
         )
         is ClassifyState.Error -> StatusInfo(
-            bg = Color(0xFF2E2A1A),
-            text = Color(0xFFFFCC02),
+            bg    = Color(0xFF2E2A1A),
+            text  = Color(0xFFFFCC02),
             title = "⚠ Could not classify",
-            sub = classifyState.videoId.take(60)
+            sub   = classifyState.videoId.take(60)
         )
     }
 
@@ -170,8 +167,8 @@ private fun StatusCard(
 }
 
 private data class StatusInfo(
-    val bg: Color,
-    val text: Color,
+    val bg:    Color,
+    val text:  Color,
     val title: String,
-    val sub: String
+    val sub:   String,
 )
