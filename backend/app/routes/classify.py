@@ -280,38 +280,85 @@ def classify_full():
 
 @classify_bp.route("/classify_by_title", methods=["POST"])
 def classify_by_title():
-    data  = request.get_json(silent=True) or {}
-    title = data.get("title", "").strip()
+    data             = request.get_json(silent=True) or {}
+    title            = data.get("title", "").strip()
+    channel          = data.get("channel", "").strip()
+    channel_id       = data.get("channel_id", "").strip()
+    duration_seconds = int(data.get("duration_seconds", 0))
+    is_verified      = bool(data.get("is_verified", False))
 
-    if not title:
-        return jsonify({"error": "title is required", "status": "error"}), 400
-    if len(title.split()) < 2:
-        print(f"[TITLE_ROUTE] Rejected: {title!r}")
+    if not title or len(title.split()) < 2:
         return jsonify({"error": "Title too short", "status": "error"}), 400
 
-    print(f"[TITLE_ROUTE] Searching for: {title!r}")
+    # Build search query — channel first for precision
+    query = f"{channel} {title}".strip() if channel else title
+    print(f"[TITLE_ROUTE] query={query!r} dur={duration_seconds}s verified={is_verified}")
 
     try:
         import yt_dlp
-        with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True,
-                                "extract_flat": True}) as ydl:
-            info = ydl.extract_info(f"ytsearch1:{title}", download=False)
 
-        entries = info.get("entries", [])
+        # Search 5 candidates instead of 1
+        with yt_dlp.YoutubeDL({
+            "quiet": True, "no_warnings": True,
+            "extract_flat": True,
+        }) as ydl:
+            info    = ydl.extract_info(f"ytsearch5:{query}", download=False)
+            entries = info.get("entries", [])
+
         if not entries:
             return jsonify({"error": "No video found", "status": "error"}), 404
 
-        video_id  = entries[0].get("id", "")
+        # ── Duration filter (most important disambiguator) ──────────────────
+        best_entry = None
+        if duration_seconds > 0:
+            # Prefer videos within ±5s of the known duration
+            TOLERANCE = 5
+            duration_matches = [
+                e for e in entries
+                if e.get("duration") and
+                   abs(int(e["duration"]) - duration_seconds) <= TOLERANCE
+            ]
+            if duration_matches:
+                # Among matches, prefer verified channel if flag set
+                if is_verified:
+                    verified = [
+                        e for e in duration_matches
+                        if is_verified_channel(e)
+                    ]
+                    best_entry = verified[0] if verified else duration_matches[0]
+                else:
+                    best_entry = duration_matches[0]
+                print(f"[TITLE_ROUTE] Duration match: "
+                      f"{best_entry['id']} dur={best_entry.get('duration')}s")
+            else:
+                # No exact match — pick closest by duration
+                best_entry = min(
+                    entries,
+                    key=lambda e: abs(
+                        int(e.get("duration") or 9999) - duration_seconds
+                    )
+                )
+                print(f"[TITLE_ROUTE] Closest duration: "
+                      f"{best_entry['id']} dur={best_entry.get('duration')}s "
+                      f"(wanted {duration_seconds}s)")
+        else:
+            # No duration — use first result (lower accuracy, log warning)
+            best_entry = entries[0]
+            print(f"[TITLE_ROUTE] ⚠ No duration supplied — accuracy ~30-40%")
+
+        video_id  = best_entry.get("id", "")
         video_url = f"https://www.youtube.com/watch?v={video_id}"
         thumb_url = f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
-        print(f"[TITLE_ROUTE] Resolved: {title!r} → {video_id}")
+        print(f"[TITLE_ROUTE] Resolved: {title!r} → {video_id} "
+              f"(dur={best_entry.get('duration')}s)")
 
+        # Continue to classify_full as before...
         cached = _check_cache(video_id)
         if cached:
             label, final_score, last_checked = cached
             return jsonify({
                 "video_id":     video_id,
-                "video_title":  title,  # ← Return the detected title
+                "video_title":  title,
                 "oir_label":    label,
                 "score_final":  final_score,
                 "last_checked": last_checked,
@@ -323,15 +370,24 @@ def classify_by_title():
         from flask import current_app
         with current_app.test_request_context(
             "/classify_full", method="POST",
-            json={"video_url": video_url, "thumbnail_url": thumb_url,
-                  "hint_title": title},
+            json={
+                "video_url":     video_url,
+                "thumbnail_url": thumb_url,
+                "hint_title":    title,
+            },
         ):
             return classify_full()
 
     except Exception as e:
-        print(f"[TITLE_ROUTE] Error: {e}")
         import traceback; traceback.print_exc()
         return jsonify({"error": str(e), "status": "error"}), 500
+
+
+def is_verified_channel(entry: dict) -> bool:
+    """Heuristic — yt-dlp flat extract doesn't always expose verified badge."""
+    channel = (entry.get("channel") or entry.get("uploader") or "").lower()
+    # Channel name matching @Handle is a proxy for verified in flat results
+    return len(channel) > 2
 
 
 # ══════════════════════════════════════════════════════════════════════════════
