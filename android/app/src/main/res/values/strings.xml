@@ -1,5 +1,20 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ChildFocus</string>
-    <string name="accessibility_description">ChildFocus monitors YouTube to detect and block overstimulating video content for children.</string>
+    
+    <!-- Accessibility Service -->
+    <string name="accessibility_service_label">ChildFocus Safety Monitor</string>
+    <string name="accessibility_description">
+        ChildFocus monitors YouTube content to protect children from overstimulating videos. This service analyzes video titles and metadata to determine if content is appropriate. No personal data is collected or shared.
+    </string>
+    
+    <!-- Blocked Content Overlay -->
+    <string name="blocked_title">Content Blocked</string>
+    <string name="blocked_message">This video has been identified as potentially overstimulating</string>
+    <string name="blocked_score">Safety Score: %1$.0f%%</string>
+    <string name="blocked_home">Return Home</string>
+    <string name="blocked_suggestions">Safe Videos</string>
+    
+    <!-- Stage 2 Banner -->
+    <string name="banner_message">Taking a break might be good</string>
+    <string name="banner_dismiss">Dismiss</string>
 </resources>

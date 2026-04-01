@@ -2,59 +2,64 @@ package com.childfocus.service
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.graphics.PixelFormat
 import android.graphics.Rect
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.childfocus.R
+import kotlinx.coroutines.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import kotlin.math.abs
-import kotlin.random.Random
 
 // ══════════════════════════════════════════════════════════════════════════════
 // DATA STRUCTURES
 // ══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Fusion constants fetched dynamically from GET /config.
- * Never hardcode these — they change between calibration profiles.
- */
+/** Fusion constants fetched dynamically from GET /config and persisted locally. */
 data class FusionConfig(
     val alpha_nb:        Float = 0.4f,
     val beta_heuristic:  Float = 0.6f,
-    val threshold_block: Float = 0.75f,
-    val threshold_allow: Float = 0.35f,
+    val threshold_block: Float = 0.60f, // v7 calibrated default
+    val threshold_allow: Float = 0.22f, // v7 calibrated default
 )
 
 /** All signals extracted from the accessibility tree for one video. */
 data class VideoMetadata(
     val titleRaw:          String,
-    val titleForSearch:    String,   // titleRaw kept with hashtags
+    val titleForSearch:    String,
     val normalizedTitle:   String,
-    val channelHandle:     String,   // "@Handle"
+    val channelHandle:     String,   // "@Handle" or plain channel name (feed)
     val channelId:         String,   // "UCxxxxxxxx" if cached, else ""
     val isVerifiedChannel: Boolean,
-    val durationSeconds:   Int,      // from SeekBar or MediaSession; 0 if unknown
-    val videoId:           String,   // "" if unavailable (Shorts static tree)
+    val durationSeconds:   Int,      // -1 = unknown (Shorts feed), 0 = no signal, >0 = known
+    val videoId:           String,   // "" if unavailable
     val videoIdSource:     String,   // "event_time" | "timed_retry" | "none"
-    val thumbnailUrl:      String,
+    val thumbnailUrl:      String,   // "" if videoId unavailable
     val description:       String,
     val isMFK:             Boolean,
     val isCOPPA:           Boolean,
     val isAgeGated:        Boolean,
     val isGeorestricted:   Boolean,
+    val isShorts:          Boolean,  // true for Shorts contexts (feed + active)
 )
 
 /** Internal node with on-screen coordinates, used for positional Shorts extraction. */
@@ -83,16 +88,42 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     // ── Network ───────────────────────────────────────────────────────────────
 
+    /** Main client for classification & suggestions. */
     private val http = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .build()
 
+    /** Dedicated short-timeout client for /config only (v7). */
+    private val configHttp = OkHttpClient.Builder()
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(5, TimeUnit.SECONDS)
+        .build()
+
+    /**
+     * Dedicated client for Tier 3 /classify_fast calls.
+     *
+     * FIX: The previous code used the main `http` client (120s read timeout)
+     * for Tier 3, then checked elapsed time AFTER the call returned.
+     * This meant the 8s TIER3_TIMEOUT_MS check was cosmetic — OkHttp would
+     * block for up to 120s before the check ever ran (confirmed in logcat:
+     * "[TIER_3] timeout after 44214ms").
+     *
+     * Solution: enforce the deadline at the HTTP layer, not after the fact.
+     * A SocketTimeoutException thrown here is caught by the existing
+     * catch(e: Exception) block in executeTier3(), which already falls
+     * through to Tier 4 — so no other code needs to change.
+     */
+    private val tier3Http = OkHttpClient.Builder()
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(TIER3_READ_TIMEOUT_SEC, TimeUnit.SECONDS)
+        .build()
+
     // ── Coroutines ────────────────────────────────────────────────────────────
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    /** Job guard so only one Tier 1 and one Tier 3 run per video. */
+    /** Only one Tier 1 and one Tier 3 per video. */
     @Volatile private var tier1Job: Job = Job().also { it.cancel() }
     @Volatile private var tier3Job: Job = Job().also { it.cancel() }
 
@@ -100,35 +131,42 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     @Volatile private var fusionConfig         = FusionConfig()
     @Volatile private var configLastFetchedMs  = 0L
-    private val CONFIG_TTL_MS                  = 300_000L
+    @Volatile private var configFailCount      = 0
+    private val CONFIG_TTL_MS                  = 300_000L   // 5 min
+    private val CONFIG_FAIL_CAP                = 3
 
-    // ── In-memory classification cache (key = normalizedTitle) ───────────────
+    // ── Cache ────────────────────────────────────────────────────────────────
 
     private val classificationCache = mutableMapOf<String, CacheEntry>()
     private val CACHE_TTL_MS        = 3_600_000L   // 1 hour
 
-    // ── Channel ID cache (key = "@Handle", value = Pair(channelId, expiryMs)) ─
-
+    // Channel ID cache (key = handle or plain name, value = Pair(channelId, expiryMs))
     private val channelIdCache = mutableMapOf<String, Pair<String, Long>>()
     private val CHANNEL_TTL_MS = 86_400_000L   // 24 hours
 
-    // ── Volatile service state ────────────────────────────────────────────────
+    // ── Volatile state ───────────────────────────────────────────────────────
 
     @Volatile private var eventTimeVideoId:            String  = ""
     @Volatile private var newShortsNavDetected:        Boolean = false
     @Volatile private var lastSeekPositionSec:         Int     = -1
     @Volatile private var lastKnownDurationSec:        Int     = 0
-    @Volatile private var lastSentNormalizedTitle:     String  = ""
+    @Volatile private var lastSentDedupKey:            String  = ""  // "{context}:{normalizedTitle}"
     @Volatile private var lastSentTimeMs:              Long    = 0L
+    @Volatile private var lastFeedExtractionMs:        Long    = 0L
     @Volatile private var lastGuardText:               String  = ""
     @Volatile private var lastGuardResult:             Boolean = false
     @Volatile private var lastShortsScreenHash:        Int     = 0
-    @Volatile private var lastExtractedShortsKey:      String  = ""
     @Volatile private var currentContext:              YoutubeContext = YoutubeContext.UNKNOWN
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // ── Compiled patterns ─────────────────────────────────────────────────────
+    // ── Overlays / WindowManager ─────────────────────────────────────────────
+
+    private var windowManager: WindowManager? = null
+    private var blockedOverlayView: View?     = null
+    private var stage2BannerView: View?       = null
+
+    // ── Patterns ─────────────────────────────────────────────────────────────
 
     private val URL_PATTERN = Pattern.compile(
         "(?:shorts/|v=|youtu\\.be/)([a-zA-Z0-9_-]{11})"
@@ -147,55 +185,71 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     private val CHANNEL_HANDLE_RE = Regex("^[A-Z][a-zA-Z0-9]{4,40}$")
 
     companion object {
-        // ── Change ONE line to switch targets ──────────────────────────────────
-        // Emulator (Pixel AVD) → "10.0.2.2"
-        // Physical device (same WiFi) → your PC's LAN IP, e.g. "192.168.1.16"
+        // Change host as needed for emulator vs device
         private const val FLASK_HOST = "192.168.1.13"
         private const val FLASK_PORT = 5000
         private const val BASE_URL   = "http://$FLASK_HOST:$FLASK_PORT"
 
-        private const val TITLE_RESET_MS    = 5 * 60 * 1000L
-        private const val TIER3_TIMEOUT_MS  = 8_000L
-        private const val TIER1_TIMEOUT_MS  = 120_000L
+        private const val TITLE_RESET_MS         = 5 * 60 * 1000L
+        private const val TIER3_TIMEOUT_MS        = 8_000L
+        // TIER3_READ_TIMEOUT_SEC is the OkHttp-layer timeout used by tier3Http.
+        // Must stay in sync with TIER3_TIMEOUT_MS (8 000 ms = 8 s + 1 s margin).
+        private const val TIER3_READ_TIMEOUT_SEC  = 9L
+        private const val TIER1_TIMEOUT_MS        = 120_000L
+        private const val FEED_DEDUP_MS           = 2_000L
 
-        // Skip terms — whole-word match for single words
+        // ── Comment-engagement phrase patterns (FIX: Problem 1) ──────────────
+        // YouTube's comment section surfaces engagement prompts like:
+        //   "Like this comment along with 14k other people"
+        //   "Like this comment along with 391 other people"
+        // These leak into allText and pass isCleanTitle() because they look
+        // like normal sentences. Block them here at the source.
+        private val COMMENT_ENGAGEMENT_PATTERNS = listOf(
+            Regex("like this comment along with", RegexOption.IGNORE_CASE),
+            Regex("\\d+[km]?\\s+other people",   RegexOption.IGNORE_CASE),
+            Regex("comment along with \\d",       RegexOption.IGNORE_CASE),
+            Regex("^\\d+[,.]?\\d*[km]?\\s+(likes?|comments?|views?)$",
+                RegexOption.IGNORE_CASE),
+        )
+
         private val SKIP_WHOLE_WORD = setOf(
-            "Subscribe", "Subscribed", "Join", "Bell", "Share", "Reply",
-            "Report", "Queue", "Topic", "Shorts", "Explore", "Library",
-            "Home", "Cast", "Minimize", "likes", "seconds", "Recommended",
+            "Subscribe", "Subscribed", "Join", "Bell", "Share",
+            "Reply", "Report", "Queue", "Topic", "Shorts",
+            "Explore", "Library", "Home", "Cast", "Minimize",
+            "likes", "seconds", "Recommended", "LIVE",
         )
         private val SKIP_WHOLE_WORD_RE: Regex = run {
             val pattern = SKIP_WHOLE_WORD.joinToString("|") { Regex.escape(it) }
             Regex("(?i)\\b($pattern)\\b")
         }
-        // Skip terms — substring match for multi-word terms
         private val SKIP_SUBSTRING = listOf(
-            "Sponsored", "Advertisement", "Ad ·", "Skip Ads", "My Mix",
-            "Trending", "Video player", "Minimized player", "More options",
-            "Hide controls", "Enter fullscreen", "Voice search", "Choose Premium",
-            "More actions", "Drag to reorder", "Close Repeat", "Shuffle Menu",
-            "re playlists", "Add to queue", "Save to playlist",
-            "Not interested", "Don't recommend channel", "Next:", "notifications",
-            "minutes, ", "Go to channel", "Music for you", "Top podcasts",
-            "Continue watching", "Up next", "Playing next", "Autoplay is",
-            "Pause autoplay", "Mix -", "Why this ad", "Stop seeing this ad",
-            "Visit advertiser", "Promoted", "Sponsored content",
-            "K views", "M views", "B views", "months ago", "years ago",
-            "days ago", "hours ago", "weeks ago", "See #", "videos ...more",
-            "...more", "Add a comment", "@mention", "comment or @", "replies",
-            "Pinned comment", "View all comments", "Comments are turned off",
-            "Top comments", "Newest first", "Sort comments", "like this",
-            "liked by", "Liked by creator", "Show more replies", "Hide replies",
-            "Load more comments", "Be the first to comment", "No comments yet",
-            "See more videos using this sound", "using this sound",
-            "Original audio", "Original sound", "Collaboration channels",
-            "View product", "Shop now", "Swipe up", "Add yours", "Remix this",
-            "(Official", "- Topic", "♪", "♫", "🎵", "🎶",
-            "Premium Lite", "Try Premium", "YouTube Premium",
-            "you'll want to try", "Ad-free", "Get Premium",
-            "Feature not available", "not available for this video",
-            "New content available", "content is available",
-            "Subscriptions:", "new content",
+            "Sponsored", "Advertisement", "Ad ·", "Skip Ads",
+            "play Short", "play video", "More actions", "Action menu",
+            "Explore Menu", "My Mix", "Trending", "Video player",
+            "Minimized player", "More options", "Hide controls",
+            "Enter fullscreen", "Voice search", "Choose Premium",
+            "Drag to reorder", "Add to queue", "Save to playlist",
+            "Not interested", "Don't recommend channel",
+            "thousand views", "million views", "K views", "M views",
+            "months ago", "years ago", "days ago", "hours ago",
+            "weeks ago", "See #", "videos ...more", "...more",
+            "Add a comment", "@mention", "comment or @", "replies",
+            "Pinned comment", "View all comments", "Top comments",
+            "Newest first", "Sort comments", "Liked by creator",
+            "Show more replies", "Load more comments",
+            "Be the first to comment", "No comments yet",
+            "See more videos using this sound",
+            "Original audio", "Original sound",
+            "View product", "Shop now", "Swipe up", "Add yours",
+            "Remix this", "(Official", "- Topic",
+            "♪", "♫", "🎵", "🎶", "Premium Lite", "Try Premium",
+            "YouTube Premium", "Ad-free", "Get Premium",
+            "Feature not available",
+            "New content available", "Subscriptions:", "new content",
+            "Tap to watch live", "SHORTS", "filters",
+            // FIX: comment engagement text leaking as video titles (Problem 1)
+            // e.g. "Like this comment along with 14k other people"
+            "like this comment", "other people", "comment along with",
         )
         private val SKIP_NODE_CLASSES = listOf(
             "ImageButton", "ImageView", "ProgressBar", "SeekBar",
@@ -204,11 +258,19 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         private val AD_SIGNALS = listOf(
             "Skip Ads", "Skip ad", "Ad ·", "Why this ad",
             "Stop seeing this ad", "Visit advertiser", "Skip in",
+            "Sponsored", "Promoted",
         )
         private val COMMENT_SIGNALS = listOf(
             "Add a comment", "Top comments", "Newest first", "Sort comments",
             "Be the first to comment", "Pinned comment",
             "Show more replies", "Load more comments",
+            // FIX (Problem 1): YouTube renders per-comment engagement prompts
+            // directly in the accessibility tree. When the user scrolls to the
+            // comment section these strings appear in allText BEFORE the
+            // standard signals above (e.g. "Add a comment") are visible.
+            // Adding them here ensures isCommentSectionVisible() returns true
+            // early and the event is discarded before extraction begins.
+            "like this comment", "other people", "comment along with",
         )
         private val SHORTS_UI_SIGNALS = listOf(
             "like", "dislike", "comment", "share", "remix",
@@ -221,14 +283,27 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     // ══════════════════════════════════════════════════════════════════════════
 
     override fun onServiceConnected() {
-        println("[CF_SERVICE] ✓ Connected — ChildFocus v6 monitoring YouTube")
-        syncFusionConfig()
+        println("[CF_SERVICE] ✓ Connected — ChildFocus v7 monitoring YouTube")
+        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        fusionConfig = loadConfigFromPrefs() // immediate, no network
+        syncFusionConfig()                   // async refresh
     }
 
     override fun onInterrupt() {
         tier1Job.cancel()
         tier3Job.cancel()
         resetVolatileState()
+        removeBlockedOverlay()
+        removeBanner()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        tier1Job.cancel()
+        tier3Job.cancel()
+        resetVolatileState()
+        removeBlockedOverlay()
+        removeBanner()
     }
 
     private fun resetVolatileState() {
@@ -236,12 +311,12 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         newShortsNavDetected    = false
         lastSeekPositionSec     = -1
         lastKnownDurationSec    = 0
-        lastSentNormalizedTitle = ""
+        lastSentDedupKey        = ""
         lastSentTimeMs          = 0L
+        lastFeedExtractionMs    = 0L
         lastGuardText           = ""
         lastGuardResult         = false
         lastShortsScreenHash    = 0
-        lastExtractedShortsKey  = ""
         currentContext          = YoutubeContext.UNKNOWN
     }
 
@@ -251,21 +326,20 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
+        if (event.packageName?.toString() != "com.google.android.youtube") return
 
-        // Reset stale "lastSentTitle" guard after 5 minutes
         val now = System.currentTimeMillis()
-        if (lastSentNormalizedTitle.isNotEmpty() &&
+        if (lastSentDedupKey.isNotEmpty() &&
             (now - lastSentTimeMs) > TITLE_RESET_MS
         ) {
-            lastSentNormalizedTitle = ""
-            lastSentTimeMs          = 0L
-            lastExtractedShortsKey  = ""
-            lastShortsScreenHash    = 0
+            lastSentDedupKey     = ""
+            lastSentTimeMs       = 0L
+            lastShortsScreenHash = 0
         }
 
         val eventType = event.eventType
 
-        // Phase 0A — only on TYPE_WINDOW_STATE_CHANGED
+        // Phase 0A — event-time video ID extraction
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             syncFusionConfig()
             phase0A_extractEventTimeVideoId(event)
@@ -276,7 +350,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             if ((now - lastSentTimeMs) < 500L) return
         }
 
-        // Gate: only process the relevant event types
+        // Process only the configured event types
         if (eventType !in listOf(
                 AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
                 AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
@@ -286,11 +360,11 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             )
         ) return
 
-        val root    = rootInActiveWindow ?: return
+        val root = rootInActiveWindow ?: return
         val allText = collectAllNodeText(root)
         root.recycle()
 
-        // Phase 2 — ad / comment guard (uses cached check)
+        // Phase 2 — ad / comment guard
         if (allText == lastGuardText && lastGuardResult) return
         val isAdOrComment = isAdPlaying(allText) || isCommentSectionVisible(allText)
         lastGuardText   = allText
@@ -301,18 +375,22 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         currentContext = detectContext(allText)
         if (currentContext == YoutubeContext.UNKNOWN) return
 
-        // For scroll events, only do feed extraction
-        if (eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED &&
-            currentContext != YoutubeContext.SHORTS_ACTIVE &&
-            currentContext != YoutubeContext.LONG_FORM_ACTIVE
-        ) return
+        // Scroll events: only feed extraction
+        if (eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+            when (currentContext) {
+                YoutubeContext.SHORTS_FEED   -> handleShortsFeed(allText)
+                YoutubeContext.LONG_FORM_FEED -> handleLongFormFeed(allText)
+                else -> { /* ignore */ }
+            }
+            return
+        }
 
-        // Dispatch to Phase 4 by context
+        // Active contexts
         when (currentContext) {
-            YoutubeContext.SHORTS_ACTIVE   -> handleShortsActive(allText, event)
-            YoutubeContext.LONG_FORM_ACTIVE -> handleLongFormActive(allText, event)
+            YoutubeContext.SHORTS_ACTIVE    -> handleShortsActive(allText)
+            YoutubeContext.LONG_FORM_ACTIVE -> handleLongFormActive(allText)
             YoutubeContext.SHORTS_FEED,
-            YoutubeContext.LONG_FORM_FEED  -> { /* cache-warming only, not in scope here */ }
+            YoutubeContext.LONG_FORM_FEED   -> { /* feed handled in scroll */ }
             YoutubeContext.UNKNOWN          -> Unit
         }
     }
@@ -322,7 +400,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     // ══════════════════════════════════════════════════════════════════════════
 
     private fun phase0A_extractEventTimeVideoId(event: AccessibilityEvent) {
-        // V1 — event text list
+        // V1 — event text
         val eventText = event.text?.joinToString(" ") ?: ""
         URL_PATTERN.matcher(eventText).let { m ->
             if (m.find()) { eventTimeVideoId = m.group(1) ?: ""; return }
@@ -335,7 +413,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         }
 
         // V3 — window titles
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             windows?.forEach { window ->
                 val title = window.title?.toString() ?: ""
                 val m     = URL_PATTERN.matcher(title)
@@ -359,24 +437,20 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         }
     }
 
-    /**
-     * V5 — Timed retry: the accessibility tree populates async after navigation.
-     * Retry at 600ms, 1200ms, 2500ms.
-     */
+    /** V5 — timed retry: tree populates async after navigation. */
     private fun launchTimedRetry() {
         scope.launch(Dispatchers.IO) {
-            val delays = listOf(600L, 1200L, 2500L)
-            for (ms in delays) {
-                delay(ms)
-                val root = rootInActiveWindow ?: continue
+            listOf(600L, 1200L, 2500L).forEach { delayMs ->
+                delay(delayMs)
+                val root = rootInActiveWindow ?: return@forEach
                 val text = collectAllNodeText(root)
                 root.recycle()
                 val m = URL_PATTERN.matcher(text)
                 if (m.find()) {
-                    val id = m.group(1) ?: continue
-                    println("[CF_SERVICE] ✓ [0A_RETRY_${ms}ms] videoId=$id")
-                    eventTimeVideoId     = id
-                    newShortsNavDetected = false
+                    val id = m.group(1) ?: return@forEach
+                    println("[CF_SERVICE] ✓ [0A_RETRY_${delayMs}ms] videoId=$id")
+                    eventTimeVideoId        = id
+                    newShortsNavDetected    = false
                     return@launch
                 }
             }
@@ -385,33 +459,40 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // PHASE 1 — CONTEXT DETECTION
+    // PHASE 1 — CONTEXT DETECTION (v7 rules)
     // ══════════════════════════════════════════════════════════════════════════
 
     private fun detectContext(allText: String): YoutubeContext {
         val lower = allText.lowercase()
 
-        // SHORTS_ACTIVE: Shorts player UI signals present + real screen check
-        val hasShorts    = lower.contains("shorts")
-        val hasViews     = lower.contains("views")
-        val hasReelSeek  = lower.contains("reel_time_bar") || hasSeekBarInTree()
-        if (hasShorts && !hasViews && (hasReelSeek || isRealShortsScreen(allText))) {
-            return YoutubeContext.SHORTS_ACTIVE
+        // SHORTS_FEED — "play Short" marker
+        if (lower.contains("play short")) {
+            // ensure not active Shorts (no reel_time_bar player)
+            if (!hasSeekBarInTree()) return YoutubeContext.SHORTS_FEED
         }
 
-        // LONG_FORM_ACTIVE: play/pause button or WatchWhileActivity
-        if (lower.contains("player_control_play_pause") ||
-            lower.contains("watchwhileactivity")) {
-            return YoutubeContext.LONG_FORM_ACTIVE
-        }
-
-        // LONG_FORM_FEED: feed-style layout
-        if (lower.contains("views") && !lower.contains("shorts")) {
+        // LONG_FORM_FEED — "play video" marker
+        if (lower.contains("play video")) {
             return YoutubeContext.LONG_FORM_FEED
         }
 
-        // SHORTS_FEED
-        if (hasShorts) return YoutubeContext.SHORTS_FEED
+        // SHORTS_ACTIVE — reel_time_bar + real Shorts UI, not feed
+        val hasReelSeek = lower.contains("reel_time_bar") || hasSeekBarInTree()
+        if (hasReelSeek &&
+            !lower.contains("play short") &&
+            isRealShortsScreen(allText)
+        ) {
+            return YoutubeContext.SHORTS_ACTIVE
+        }
+
+        // LONG_FORM_ACTIVE — player controls and not feed markers
+        if ((lower.contains("player_control_play_pause_replay_button") ||
+                    lower.contains("watchwhileactivity")) &&
+            !lower.contains("play short") &&
+            !lower.contains("play video")
+        ) {
+            return YoutubeContext.LONG_FORM_ACTIVE
+        }
 
         return YoutubeContext.UNKNOWN
     }
@@ -426,13 +507,17 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     private fun findSeekBarNode(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         try {
             val rid = node.viewIdResourceName ?: ""
-            if (rid.contains("reel_time_bar") || node.className?.toString()?.contains("SeekBar") == true) {
-                return node
-            }
+            if (rid.contains("reel_time_bar") ||
+                node.className?.toString()?.contains("SeekBar") == true
+            ) return node
+
             for (i in 0 until node.childCount) {
                 val child = node.getChild(i) ?: continue
                 val found = findSeekBarNode(child)
-                if (found != null) { child.recycle(); return found }
+                if (found != null) {
+                    child.recycle()
+                    return found
+                }
                 child.recycle()
             }
         } catch (_: Exception) {}
@@ -450,48 +535,37 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         COMMENT_SIGNALS.any { allText.contains(it, ignoreCase = true) }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // SHORTS ACTIVE HANDLER
+    // SHORTS ACTIVE HANDLER (4C + cache + Tiers)
     // ══════════════════════════════════════════════════════════════════════════
 
-    private fun handleShortsActive(allText: String, event: AccessibilityEvent) {
-
-        // Fast-path: skip if screen content unchanged
+    private fun handleShortsActive(allText: String) {
         val screenHash = allText.hashCode()
         if (screenHash == lastShortsScreenHash) return
         lastShortsScreenHash = screenHash
 
-        // Phase 4C — extract all signals
         val metadata = extractShortsMetadata() ?: return
 
-        // SeekBar video-change detection
+        // SeekBar-based video-change detection
         if (isVideoChangeDetected(metadata.durationSeconds)) {
-            // New video — reset state
-            eventTimeVideoId    = ""
-            lastSentNormalizedTitle = ""
-            lastExtractedShortsKey  = ""
+            eventTimeVideoId     = ""
+            lastSentDedupKey     = ""
             println("[CF_SERVICE] ✓ [SEEKBAR] New Shorts video detected, dur=${metadata.durationSeconds}s")
         }
 
-        // Dedup: same normalizedTitle as the last one sent — skip
-        if (metadata.normalizedTitle == lastSentNormalizedTitle) return
-
-        // Phase 5 — validate
+        val dedupKey = "SHORTS_ACTIVE:${metadata.normalizedTitle}"
+        if (dedupKey == lastSentDedupKey) return
         if (!isCleanTitle(metadata.titleRaw)) return
 
-        // Same title+channel key as last extracted — skip
-        val key = "${metadata.channelHandle}|${metadata.normalizedTitle}"
-        if (key == lastExtractedShortsKey) return
-        lastExtractedShortsKey  = key
-        lastSentNormalizedTitle = metadata.normalizedTitle
-        lastSentTimeMs          = System.currentTimeMillis()
+        lastSentDedupKey = dedupKey
+        lastSentTimeMs   = System.currentTimeMillis()
 
-        println("[CF_SERVICE] ✓ [SHORTS] title='${metadata.titleRaw}' " +
+        println("[CF_SERVICE] ✓ [SHORTS_ACTIVE] title='${metadata.titleRaw}' " +
                 "ch='${metadata.channelHandle}' dur=${metadata.durationSeconds}s " +
                 "videoId='${metadata.videoId}' src='${metadata.videoIdSource}'")
 
         broadcastAnalyzing(metadata.videoId.ifEmpty { metadata.titleRaw.take(40) })
 
-        // Phase 7 — Tier 2 restriction fast-path
+        // Restriction fast-path (Tier 2)
         if (metadata.isAgeGated || (metadata.isMFK && metadata.isGeorestricted)) {
             val score = applyRestrictionModifiers(fusionConfig.threshold_block, metadata)
             deliverResult(
@@ -506,7 +580,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             return
         }
 
-        // Phase 3 — cache lookup
+        // Cache lookup (Tier 0)
         val cached = getCachedResult(metadata.normalizedTitle)
         if (cached != null) {
             println("[CF_SERVICE] ✓ [TIER_0][CACHE_HIT] ${metadata.normalizedTitle}")
@@ -518,11 +592,13 @@ class ChildFocusAccessibilityService : AccessibilityService() {
                 confidence = cached.confidence,
                 cached     = true,
             )
-            if (cached.oirLabel == "Overstimulating") blockYouTubeVideo()
+            if (cached.oirLabel == "Overstimulating") {
+                fetchAndShowSuggestions(cached.videoId.ifEmpty { metadata.videoId }, cached.score)
+            }
             return
         }
 
-        // Phase 7 — SHORTS: launch Tier 3 (primary UX) ‖ Tier 1 (background)
+        // Launch T3 (primary UX) + T1 (background)
         launchShortsClassification(metadata)
     }
 
@@ -539,30 +615,110 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // LONG-FORM ACTIVE HANDLER
+    // SHORTS FEED HANDLER (4A — Button content-desc parser, cache-warming only)
     // ══════════════════════════════════════════════════════════════════════════
 
-    private fun handleLongFormActive(allText: String, event: AccessibilityEvent) {
+    private fun handleShortsFeed(allText: String) {
+        val now = System.currentTimeMillis()
+        if (now - lastFeedExtractionMs < FEED_DEDUP_MS) return
+        lastFeedExtractionMs = now
 
-        // Try event-time video ID first, then tree scan
+        val root = rootInActiveWindow ?: return
+        val buttons = mutableListOf<AccessibilityNodeInfo>()
+        collectButtons(root, buttons)
+        root.recycle()
+
+        for (btn in buttons) {
+            try {
+                val cdesc = btn.contentDescription?.toString() ?: continue
+                if (!cdesc.endsWith(" - play Short")) continue
+                if (cdesc.startsWith("Tap to watch live")) continue
+                if (cdesc == "More actions") continue
+
+                val body  = cdesc.removeSuffix(" - play Short")
+                val parts = body.split(", ")
+                if (parts.size < 4) continue
+
+                val timeStr  = parts.last()                 // e.g. "2 years ago"
+                val channel  = parts[parts.size - 2]
+                val viewsStr = parts[parts.size - 3]
+                val titleRaw = parts.dropLast(3).joinToString(", ")
+
+                if (!isCleanTitle(titleRaw)) continue
+
+                val normTitle = normalizeTitle(titleRaw)
+                val dedupKey  = "SHORTS_FEED:$normTitle"
+                if (dedupKey == lastSentDedupKey) continue
+                lastSentDedupKey = dedupKey
+                lastSentTimeMs   = now
+
+                // Shorts feed: no duration from SeekBar; use -1 for unknown
+                val metadata = VideoMetadata(
+                    titleRaw          = titleRaw,
+                    titleForSearch    = titleRaw,
+                    normalizedTitle   = normTitle,
+                    channelHandle     = channel,   // plain name, no "@"
+                    channelId         = "",
+                    isVerifiedChannel = false,
+                    durationSeconds   = -1,        // unknown (critical for backend)
+                    videoId           = "",
+                    videoIdSource     = "none",
+                    thumbnailUrl      = "",
+                    description       = "",
+                    isMFK             = false,
+                    isCOPPA           = false,
+                    isAgeGated        = false,
+                    isGeorestricted   = false,
+                    isShorts          = true,
+                )
+
+                println("[CF_SERVICE] ✓ [SHORTS_FEED] title='$titleRaw' channel='$channel'")
+                // Cache warming only: Tier 1 in background, no UX
+                tier1Job = scope.launch { executeTier1(metadata, isShorts = true, fromFeed = true) }
+
+            } finally {
+                btn.recycle()
+            }
+        }
+    }
+
+    private fun collectButtons(node: AccessibilityNodeInfo, out: MutableList<AccessibilityNodeInfo>) {
+        try {
+            if (node.className?.toString()?.contains("Button") == true) {
+                // Clone reference; caller will recycle
+                out.add(AccessibilityNodeInfo.obtain(node))
+            }
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                collectButtons(child, out)
+                child.recycle()
+            }
+        } catch (_: Exception) {}
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // LONG-FORM ACTIVE HANDLER (4D)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private fun handleLongFormActive(allText: String) {
         var videoId = eventTimeVideoId
         if (videoId.isEmpty()) {
             val m = URL_PATTERN.matcher(allText)
             if (m.find()) videoId = m.group(1) ?: ""
         }
 
-        // Extract title from tree
         val title = extractLongFormTitle(allText) ?: return
         val normTitle = normalizeTitle(title)
 
-        if (normTitle == lastSentNormalizedTitle) return
+        val dedupKey = "LONG_FORM_ACTIVE:$normTitle"
+        if (dedupKey == lastSentDedupKey) return
         if (!isCleanTitle(title)) return
 
-        lastSentNormalizedTitle = normTitle
-        lastSentTimeMs          = System.currentTimeMillis()
-        eventTimeVideoId        = ""
+        lastSentDedupKey = dedupKey
+        lastSentTimeMs   = System.currentTimeMillis()
+        eventTimeVideoId = ""
 
-        println("[CF_SERVICE] ✓ [LONG_FORM] videoId='$videoId' title='$title'")
+        println("[CF_SERVICE] ✓ [LONG_FORM_ACTIVE] videoId='$videoId' title='$title'")
         broadcastAnalyzing(videoId.ifEmpty { title.take(40) })
 
         val cached = getCachedResult(normTitle)
@@ -576,7 +732,9 @@ class ChildFocusAccessibilityService : AccessibilityService() {
                 confidence = cached.confidence,
                 cached     = true,
             )
-            if (cached.oirLabel == "Overstimulating") blockYouTubeVideo()
+            if (cached.oirLabel == "Overstimulating") {
+                fetchAndShowSuggestions(videoId.ifEmpty { cached.videoId }, cached.score)
+            }
             return
         }
 
@@ -599,15 +757,93 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             isCOPPA           = false,
             isAgeGated        = allText.contains("age-restricted", ignoreCase = true),
             isGeorestricted   = allText.contains("not available in your country", ignoreCase = true),
+            isShorts          = false,
         )
 
-        // Long-form: Tier 1 is primary
         tier1Job.cancel()
-        tier1Job = scope.launch { executeTier1(metadata, isShorts = false) }
+        tier1Job = scope.launch { executeTier1(metadata, isShorts = false, fromFeed = false) }
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // PHASE 4C — SHORTS METADATA EXTRACTION (coordinate-based)
+    // LONG-FORM FEED HANDLER (4B — Button + ViewGroup patterns, cache-warming)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private fun handleLongFormFeed(allText: String) {
+        val now = System.currentTimeMillis()
+        if (now - lastFeedExtractionMs < FEED_DEDUP_MS) return
+        lastFeedExtractionMs = now
+
+        val root = rootInActiveWindow ?: return
+        val buttons = mutableListOf<AccessibilityNodeInfo>()
+        collectButtons(root, buttons)
+
+        // Pattern A — Button content-desc " - play video"
+        for (btn in buttons) {
+            try {
+                val cdesc = btn.contentDescription?.toString() ?: continue
+                if (!cdesc.endsWith(" - play video")) continue
+                if (cdesc.startsWith("Tap to watch live")) continue
+                if (cdesc == "More actions" || cdesc == "Action menu" || cdesc == "Explore Menu") continue
+                if (cdesc.endsWith(" - play Short")) continue
+
+                val body   = cdesc.removeSuffix(" - play video")
+                val splitDD = body.split(" - - ", limit = 2)
+                if (splitDD.size != 2) continue
+                val titleAndDuration = splitDD[0]
+                val channelAndMeta   = splitDD[1]
+
+                val lastDash = titleAndDuration.lastIndexOf(" - ")
+                val titleRaw = if (lastDash > 0)
+                    titleAndDuration.substring(0, lastDash)
+                else titleAndDuration
+
+                if (!isCleanTitle(titleRaw)) continue
+
+                val channelParts = channelAndMeta.split(" - ")
+                val channel = channelParts.firstOrNull() ?: ""
+
+                val durationStr = if (lastDash > 0)
+                    titleAndDuration.substring(lastDash + 3) else ""
+                val durationSec = parseDurationString(durationStr)
+
+                val normTitle = normalizeTitle(titleRaw)
+                val dedupKey  = "LONG_FORM_FEED:$normTitle"
+                if (dedupKey == lastSentDedupKey) continue
+                lastSentDedupKey = dedupKey
+                lastSentTimeMs   = now
+
+                val metadata = VideoMetadata(
+                    titleRaw          = titleRaw,
+                    titleForSearch    = titleRaw,
+                    normalizedTitle   = normTitle,
+                    channelHandle     = channel,
+                    channelId         = "",
+                    isVerifiedChannel = false,
+                    durationSeconds   = durationSec,
+                    videoId           = "",
+                    videoIdSource     = "none",
+                    thumbnailUrl      = "",
+                    description       = "",
+                    isMFK             = false,
+                    isCOPPA           = false,
+                    isAgeGated        = false,
+                    isGeorestricted   = false,
+                    isShorts          = false,
+                )
+
+                println("[CF_SERVICE] ✓ [LONG_FORM_FEED] title='$titleRaw' channel='$channel'")
+                tier1Job = scope.launch { executeTier1(metadata, isShorts = false, fromFeed = true) }
+
+            } finally {
+                btn.recycle()
+            }
+        }
+
+        root.recycle()
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // PHASE 4C — SHORTS METADATA EXTRACTION (active Shorts)
     // ══════════════════════════════════════════════════════════════════════════
 
     private fun extractShortsMetadata(): VideoMetadata? {
@@ -622,7 +858,6 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         val channelRowT = (screenH * 0.87).toInt()
         val neighbourT  = (screenH * 0.18).toInt()
 
-        // Noise filter
         val uiExact = setOf(
             "shorts", "home", "explore", "subscriptions", "library", "you",
             "like", "dislike", "comment", "share", "subscribe", "subscribed",
@@ -645,7 +880,6 @@ class ChildFocusAccessibilityService : AccessibilityService() {
                     n.text.length >= 2
         }
 
-        // Locate @channel node closest to channelRowTarget
         val channelNode = filtered
             .filter { it.text.startsWith("@") && it.bottom > 0 }
             .minByOrNull { abs(it.bottom - channelRowT) }
@@ -653,20 +887,22 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
         val channelHandle  = channelNode.text.substringBefore(",").trim()
         val isVerified     = channelNode.text.contains("official", ignoreCase = true) ||
-                             channelNode.text.contains("verified", ignoreCase = true)
+                channelNode.text.contains("verified", ignoreCase = true)
 
-        // SeekBar duration
-        val seekNode  = nodes.firstOrNull { it.text.matches(Regex(
-            "\\d+\\s+minutes?\\s+\\d+\\s+seconds?\\s+of\\s+\\d+\\s+minutes?\\s+\\d+\\s+seconds?",
-            RegexOption.IGNORE_CASE
-        )) }
+        val seekNode  = nodes.firstOrNull {
+            it.text.matches(
+                Regex(
+                    "\\d+\\s+minutes?\\s+\\d+\\s+seconds?\\s+of\\s+\\d+\\s+minutes?\\s+\\d+\\s+seconds?",
+                    RegexOption.IGNORE_CASE
+                )
+            )
+        }
         val durationSec = seekNode?.let { parseSeekDuration(it.text) } ?: 0
         if (seekNode != null) {
             val currentSec = parseSeekCurrent(seekNode.text)
             if (lastSeekPositionSec >= 0) lastSeekPositionSec = currentSec
         }
 
-        // Candidate title nodes (settled overlay band)
         val maxBottom = minOf(channelNode.bottom + neighbourT, settledMax)
         val seekRe    = Regex(
             "^\\d+\\s+minutes?\\s+\\d+\\s+seconds?\\s+of.*",
@@ -684,13 +920,11 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             .filter { it.text.length >= 3 }
             .sortedByDescending { it.bottom }
 
-        val titleRaw = candidates.firstOrNull()?.text
+        val rawTitle = candidates.firstOrNull()?.text
             ?.replace(Regex("[​‌‍﻿]"), "")
             ?.trim() ?: return null
+        if (rawTitle.length < 3) return null
 
-        if (titleRaw.length < 3) return null
-
-        // Restriction signals from the all-node text
         val allText = nodes.joinToString(" ") { it.text }
         val isMFK         = allText.contains("made for kids", ignoreCase = true)
         val isAgeGated    = allText.contains("age-restricted", ignoreCase = true)
@@ -706,9 +940,9 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             "https://i.ytimg.com/vi/$videoId/hqdefault.jpg" else ""
 
         return VideoMetadata(
-            titleRaw          = titleRaw,
-            titleForSearch    = titleRaw,
-            normalizedTitle   = normalizeTitle(titleRaw),
+            titleRaw          = rawTitle,
+            titleForSearch    = rawTitle,
+            normalizedTitle   = normalizeTitle(rawTitle),
             channelHandle     = channelHandle,
             channelId         = cachedChannelId,
             isVerifiedChannel = isVerified,
@@ -721,6 +955,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             isCOPPA           = isCOPPA,
             isAgeGated        = isAgeGated,
             isGeorestricted   = isGeoRestrict,
+            isShorts          = true,
         )
     }
 
@@ -739,17 +974,15 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // PHASE 4D — LONG-FORM TITLE EXTRACTION
+    // PHASE 4D — LONG-FORM TITLE + CHANNEL EXTRACTION
     // ══════════════════════════════════════════════════════════════════════════
 
     private fun extractLongFormTitle(allText: String): String? {
-        // Strategy: VIEWS pattern captures the title before the view count
         val viewsMatch = VIEWS_PATTERN.matcher(allText)
         if (viewsMatch.find()) {
             val t = viewsMatch.group(1)?.trim() ?: ""
             if (isCleanTitle(t)) return t
         }
-        // Strategy: @channel pattern
         val atMatch = AT_CHANNEL_PATTERN.matcher(allText)
         if (atMatch.find()) {
             val t = atMatch.group(1)?.trim() ?: ""
@@ -761,7 +994,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     private fun extractChannel(allText: String): String {
         val m = AT_CHANNEL_PATTERN.matcher(allText)
         if (m.find()) {
-            val idx = allText.indexOf("@", m.end()) // find "@Handle" after title
+            val idx = allText.indexOf("@", m.end())
             if (idx >= 0) {
                 val end = allText.indexOfFirst(idx) { it == ' ' || it == '\n' }
                 return if (end > idx) allText.substring(idx, end) else "@unknown"
@@ -780,31 +1013,35 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     // ══════════════════════════════════════════════════════════════════════════
 
     private fun isCleanTitle(text: String): Boolean {
-        if (text.length < 8 || text.length > 200) return false
+        if (text.length < 8 || text.length > 300) return false
 
-        // Whole-word single-term skip
+        // FIX (Problem 1): Reject comment engagement text that passes the
+        // length check and other filters. These regex patterns cover
+        // number-varies forms like "Like this comment along with 5.2K other
+        // people" that substring matching cannot fully pre-enumerate.
+        if (COMMENT_ENGAGEMENT_PATTERNS.any { it.containsMatchIn(text) }) return false
+
         for (term in SKIP_WHOLE_WORD) {
             if (SKIP_WHOLE_WORD_RE.containsMatchIn(text) &&
                 Regex("(?i)\\b${Regex.escape(term)}\\b").containsMatchIn(text)
             ) return false
         }
-        // Substring skip
         for (term in SKIP_SUBSTRING) {
             if (text.contains(term, ignoreCase = true)) return false
         }
 
         val lower = text.lowercase()
-        if (lower.contains(" thousand views") || lower.contains("- play short") ||
-            lower.contains("affiliate")        || lower.contains("shopee") ||
-            lower.contains("lazada")            || lower.contains("best seller") ||
-            lower.contains("buy now")           || lower.contains("order now") ||
-            lower.contains("link in bio")       ||
-            lower.contains("say goodbye to")    || lower.contains("years younger") ||
-            lower.contains("skin look")         || lower.contains("suitable for all") ||
-            lower.contains("all skin types")    ||
-            lower.startsWith("search ")         ||
+        if (lower.contains("affiliate")     || lower.contains("shopee") ||
+            lower.contains("lazada")        || lower.contains("best seller") ||
+            lower.contains("buy now")       || lower.contains("order now") ||
+            lower.contains("link in bio")   ||
+            lower.contains("say goodbye to")|| lower.contains("years younger") ||
+            lower.contains("skin look")     || lower.contains("suitable for all") ||
+            lower.contains("all skin types")||
+            lower.startsWith("search ")     ||
+            lower.startsWith("tap to watch live") ||
             (lower.startsWith("view ") && lower.contains("comment")) ||
-            lower.startsWith("helps ")          ||
+            lower.startsWith("helps ")      ||
             (lower.startsWith("get ") && text.length < 60) ||
             (lower.startsWith("try ") && text.length < 50)
         ) return false
@@ -839,61 +1076,82 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     // PHASE 7 — CLASSIFICATION PIPELINE
     // ══════════════════════════════════════════════════════════════════════════
 
-    /** Launch Tier 3 ‖ Tier 1 in parallel. Tier 3 controls live UX. */
     private fun launchShortsClassification(metadata: VideoMetadata) {
         tier1Job.cancel()
         tier3Job.cancel()
 
-        // Tier 3 — fast path (primary UX for Shorts)
-        tier3Job = scope.launch {
-            executeTier3(metadata)
-        }
-        // Tier 1 — full analysis (background, may upgrade result)
-        tier1Job = scope.launch {
-            executeTier1(metadata, isShorts = true)
-        }
+        tier3Job = scope.launch { executeTier3(metadata) }
+        tier1Job = scope.launch { executeTier1(metadata, isShorts = true, fromFeed = false) }
     }
 
-    // ── TIER 1 — Full classification (audiovisual + NB fusion) ───────────────
+    // ── TIER 1 — Full classification (classify_full / classify_by_title) ─────
 
-    private suspend fun executeTier1(metadata: VideoMetadata, isShorts: Boolean) {
+    private suspend fun executeTier1(
+        metadata: VideoMetadata,
+        isShorts: Boolean,
+        fromFeed: Boolean,
+    ) {
         syncFusionConfig()
         try {
-            val responseJson: JSONObject
-            if (metadata.videoId.isNotEmpty()) {
-                // Case A — video ID available
-                val body = JSONObject().apply {
-                    put("video_url",     "https://www.youtube.com/watch?v=${metadata.videoId}")
-                    put("thumbnail_url", metadata.thumbnailUrl)
-                    put("hint_title",    metadata.titleForSearch)
+            val responseJson: JSONObject =
+                if (metadata.videoId.isNotEmpty()) {
+                    // Case A — video ID available
+                    val body = JSONObject().apply {
+                        put("video_url",     "https://www.youtube.com/watch?v=${metadata.videoId}")
+                        put("thumbnail_url", metadata.thumbnailUrl)
+                        put("hint_title",    metadata.titleForSearch)
+                    }
+                    postJson("/classify_full", body)
+                } else {
+                    // Case B — no video ID (Shorts typical, feed cards)
+                    val body = JSONObject().apply {
+                        put("title",            metadata.titleForSearch)
+                        put("channel",          metadata.channelHandle)
+                        put("channel_id",       metadata.channelId)
+                        put("duration_seconds", metadata.durationSeconds)
+                        put(
+                            "is_verified",
+                            metadata.isVerifiedChannel
+                        )
+                        put(
+                            "is_shorts",
+                            metadata.isShorts || (metadata.durationSeconds in 1..60)
+                        )
+                    }
+                    postJson("/classify_by_title", body)
                 }
-                responseJson = postJson("/classify_full", body)
-            } else {
-                // Case B — no video ID (typical for Shorts)
-                val body = JSONObject().apply {
-                    put("title",            metadata.titleForSearch)
-                    put("channel",          metadata.channelHandle)
-                    put("channel_id",       metadata.channelId)
-                    put("duration_seconds", metadata.durationSeconds)
-                    put("is_verified",      metadata.isVerifiedChannel)
-                }
-                responseJson = postJson("/classify_by_title", body)
-            }
 
             val rawScore = responseJson.optDouble("score_final", 0.5).toFloat()
-            val score    = applyRestrictionModifiers(rawScore, metadata)
+            var score    = applyRestrictionModifiers(rawScore, metadata)
             val label    = scoreTolabel(score)
 
             println("[CF_SERVICE] ✓ [TIER_1] ${metadata.titleRaw.take(40)} → $label ($score)")
 
-            // Check for label upgrade vs Tier 3 result (log discrepancy)
             val prior = getCachedResult(metadata.normalizedTitle)
             if (prior != null && prior.oirLabel != label) {
                 println("[CF_SERVICE] ⚠ [TIER_LABEL_MISMATCH] Tier3=${prior.oirLabel} Tier1=$label")
             }
 
+            val videoIdFromResp = responseJson.optString("video_id", metadata.videoId)
+            val finalVideoId = videoIdFromResp.ifEmpty {
+                metadata.videoId.ifEmpty { metadata.normalizedTitle }
+            }
+
+            // For feed: cache only, no UX
+            if (fromFeed) {
+                classificationCache[metadata.normalizedTitle] = CacheEntry(
+                    oirLabel    = label,
+                    score       = score,
+                    tier        = 1,
+                    confidence  = if (metadata.videoId.isNotEmpty()) "FULL" else "PARTIAL",
+                    videoId     = finalVideoId,
+                    timestampMs = System.currentTimeMillis(),
+                )
+                return
+            }
+
             deliverResult(
-                videoId    = metadata.videoId.ifEmpty { responseJson.optString("video_id", "") },
+                videoId    = finalVideoId,
                 label      = label,
                 score      = score,
                 tier       = 1,
@@ -903,9 +1161,8 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             )
         } catch (e: Exception) {
             println("[CF_SERVICE] ✗ [TIER_1_FAIL] ${e.message}")
-            // If Tier 3 has not resolved yet (Shorts), fall through to Tier 4
             if (!isShorts && getCachedResult(metadata.normalizedTitle) == null) {
-                executeTier4(metadata)
+                executeTier4(metadata) // Long-form fallback
             }
         }
     }
@@ -917,32 +1174,36 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         try {
             val body = JSONObject().apply {
                 put("title",       metadata.titleForSearch)
-                put("tags",        org.json.JSONArray())
+                put("tags",        JSONArray())
                 put("description", cleanForClassification(metadata.description))
             }
 
+            // FIX (Problem 2): Use tier3Http (9s read timeout) instead of the
+            // main `http` client (120s).  The old code called postJson() — which
+            // uses `http` — then checked elapsed time AFTER the call returned.
+            // Because OkHttp would block for up to 120s before returning, the
+            // TIER3_TIMEOUT_MS guard was never reached in time (confirmed in
+            // logcat: "[TIER_3] timeout after 44214ms").
+            //
+            // Now the deadline is enforced at the socket layer.  A
+            // SocketTimeoutException bubbles up to the catch block below and
+            // falls through to Tier 4 — no other changes needed.
             val startMs  = System.currentTimeMillis()
-            val response = postJson("/classify_fast", body)
+            val response = postJsonWithClient(tier3Http, "/classify_fast", body)
             val elapsed  = System.currentTimeMillis() - startMs
-
-            if (elapsed > TIER3_TIMEOUT_MS) {
-                println("[CF_SERVICE] ⚠ [TIER_3] timeout after ${elapsed}ms")
-                executeTier4(metadata)
-                return
-            }
+            println("[CF_SERVICE] ✓ [TIER_3] classify_fast returned in ${elapsed}ms")
 
             val nbScore    = response.optDouble("score_nb", 0.5).toFloat()
             val thumbScore = computeThumbnailIntensityLocal(metadata.thumbnailUrl)
 
             val fusedScore = (fusionConfig.alpha_nb * nbScore +
-                              fusionConfig.beta_heuristic * thumbScore)
+                    fusionConfig.beta_heuristic * thumbScore)
                 .coerceIn(0f, 1f)
 
             val score = applyRestrictionModifiers(fusedScore, metadata)
             val label = scoreTolabel(score)
 
-            println("[CF_SERVICE] ✓ [TIER_3] nb=$nbScore thumb=$thumbScore " +
-                    "fused=$score → $label")
+            println("[CF_SERVICE] ✓ [TIER_3] nb=$nbScore thumb=$thumbScore fused=$score → $label")
 
             deliverResult(
                 videoId    = metadata.videoId.ifEmpty { metadata.normalizedTitle },
@@ -953,24 +1214,29 @@ class ChildFocusAccessibilityService : AccessibilityService() {
                 cached     = false,
                 metadata   = metadata,
             )
+        } catch (e: java.net.SocketTimeoutException) {
+            // Explicit timeout branch — logs a clear message distinct from
+            // other network errors so it is easy to spot during thesis testing.
+            val elapsed = System.currentTimeMillis()
+            println("[CF_SERVICE] ⚠ [TIER_3] socket timeout after " +
+                    "${TIER3_READ_TIMEOUT_SEC}s — falling through to Tier 5 banner")
+            executeTier5_timeout(metadata)
         } catch (e: Exception) {
             println("[CF_SERVICE] ✗ [TIER_3_FAIL] ${e.message}")
             executeTier4(metadata)
         }
     }
 
-    // ── TIER 4 — Local keyword scoring + screen saturation ───────────────────
+    // ── TIER 4 — Local scoring fallback ───────────────────────────────────────
 
     private fun executeTier4(metadata: VideoMetadata) {
-        val textScore = computeLocalOirScore(
-            cleanForClassification(
-                "${metadata.titleRaw} ${metadata.channelHandle} ${metadata.description.take(300)}"
-            )
+        val classifierInput = cleanForClassification(
+            "${metadata.titleRaw} ${metadata.channelHandle} ${metadata.description.take(300)}"
         )
-        // No thumbnail available in this tier; use 0.5 neutral
-        val satScore   = 0.5f
+        val textScore = computeLocalOirScore(classifierInput)
+        val satScore  = 0.5f
         val fusedScore = (fusionConfig.alpha_nb * textScore +
-                          fusionConfig.beta_heuristic * satScore)
+                fusionConfig.beta_heuristic * satScore)
             .coerceIn(0f, 1f)
         val score = applyRestrictionModifiers(fusedScore, metadata)
         val label = scoreTolabel(score)
@@ -988,7 +1254,13 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         )
     }
 
-    /** Local keyword-based OIR score [0, 1] — used when backend unreachable. */
+    // ── TIER 5 — Timeout / unresolved (Shorts only: passive Stage 2 banner) ──
+
+    private fun executeTier5_timeout(metadata: VideoMetadata) {
+        println("[CF_SERVICE] ⚠ [TIER_5][SHORTS_TIMEOUT] ${metadata.titleRaw.take(40)}")
+        showStage2Banner()
+    }
+
     private fun computeLocalOirScore(text: String): Float {
         val overstimulating = setOf(
             "surprise", "unboxing", "compilation", "fast", "crazy", "insane",
@@ -1014,7 +1286,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     private fun applyRestrictionModifiers(score: Float, meta: VideoMetadata): Float {
         var s = score
-        if (meta.isGeorestricted) return s  // cannot analyze
+        if (meta.isGeorestricted) return s   // cannot analyze further
         if (meta.isMFK && meta.isAgeGated) return fusionConfig.threshold_block
         if (meta.isAgeGated) s = s.coerceAtLeast(fusionConfig.threshold_block - 0.05f)
         if (meta.isMFK)      s = s.coerceAtLeast(fusionConfig.threshold_allow + 0.05f)
@@ -1040,7 +1312,6 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         cached:     Boolean,
         metadata:   VideoMetadata,
     ) {
-        // Write to in-memory cache
         classificationCache[metadata.normalizedTitle] = CacheEntry(
             oirLabel    = label,
             score       = score,
@@ -1050,7 +1321,6 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             timestampMs = System.currentTimeMillis(),
         )
 
-        // Broadcast to MainActivity/SafetyModeScreen
         broadcastResult(
             videoId    = videoId,
             label      = label,
@@ -1060,73 +1330,223 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             cached     = cached,
         )
 
-        // Block YouTube if overstimulating
         if (label == "Overstimulating") {
-            blockYouTubeVideo()
-            fetchAndShowSuggestions(videoId)
+            fetchAndShowSuggestions(videoId, score)
         }
 
         println("[CF_SERVICE] ✓ [T$tier/$confidence] $label ($score) → $videoId cached=$cached")
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // UX ACTIONS
+    // UX ACTIONS + OVERLAYS
     // ══════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Pauses YouTube then navigates to the home screen, removing the blocked
-     * video from the screen. Must run on the main thread.
-     */
-    private fun blockYouTubeVideo() {
+    /** Show Stage 1 full-screen block overlay using overlay_blocked.xml. */
+    private fun showBlockedOverlay(score: Float, suggestionsJson: String?) {
         mainHandler.post {
-            val root = rootInActiveWindow
-            if (root != null) {
-                root.findAccessibilityNodeInfosByViewId(
-                    "com.google.android.youtube:id/player_control_play_pause_replay_button"
-                ).firstOrNull()?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                root.recycle()
+            try {
+                removeBlockedOverlay()
+
+                val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
+                val view     = inflater.inflate(R.layout.overlay_blocked, null)
+
+                val tvBlocked = view.findViewById<TextView>(R.id.tvBlocked)
+                val tvScore   = view.findViewById<TextView>(R.id.tvScore)
+                val pb        = view.findViewById<ProgressBar>(R.id.pbSuggestions)
+                val llSug     = view.findViewById<LinearLayout>(R.id.llSuggestions)
+                val btnClose  = view.findViewById<Button>(R.id.btnClose)
+
+                tvBlocked.text = getString(R.string.blocked_title)
+                tvScore.text   = "Overstimulating score: ${(score * 100).toInt()}%"
+
+                btnClose.setOnClickListener {
+                    performGlobalAction(GLOBAL_ACTION_HOME)
+                    removeBlockedOverlay()
+                }
+
+                if (!suggestionsJson.isNullOrEmpty()) {
+                    pb.visibility = View.GONE
+                    populateSuggestionButtons(llSug, suggestionsJson)
+                } else {
+                    pb.visibility = View.VISIBLE
+                }
+
+                val params = WindowManager.LayoutParams().apply {
+                    type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                    } else {
+                        @Suppress("DEPRECATION")
+                        WindowManager.LayoutParams.TYPE_PHONE
+                    }
+                    format = PixelFormat.TRANSLUCENT
+                    flags =
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                                WindowManager.LayoutParams.FLAG_FULLSCREEN
+                    width  = WindowManager.LayoutParams.MATCH_PARENT
+                    height = WindowManager.LayoutParams.MATCH_PARENT
+                    gravity = Gravity.CENTER
+                }
+
+                blockedOverlayView = view
+                windowManager?.addView(view, params)
+            } catch (e: Exception) {
+                println("[CF_SERVICE] ✗ [OVERLAY_BLOCKED] ${e.message}")
             }
-            mainHandler.postDelayed({
-                performGlobalAction(GLOBAL_ACTION_HOME)
-            }, 300L)
         }
     }
 
-    /**
-     * Fetches safe suggestions in the background.
-     * The overlay UI (overlay_blocked.xml) uses these to populate suggestion buttons.
-     * In this implementation the suggestions are broadcast as a JSON extra;
-     * the SafetyModeScreen / a future overlay service reads them.
-     */
-    private fun fetchAndShowSuggestions(excludeVideoId: String) {
+    private fun removeBlockedOverlay() {
+        mainHandler.post {
+            try {
+                blockedOverlayView?.let { v ->
+                    windowManager?.removeView(v)
+                }
+            } catch (_: Exception) {
+            } finally {
+                blockedOverlayView = null
+            }
+        }
+    }
+
+    /** Passive Stage 2 banner (no block, v7 Tier 5). */
+    private fun showStage2Banner() {
+        mainHandler.post {
+            try {
+                removeBanner()
+
+                val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
+                val view     = inflater.inflate(R.layout.overlay_banner_stage2, null)
+
+                val params = WindowManager.LayoutParams().apply {
+                    type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                    } else {
+                        @Suppress("DEPRECATION")
+                        WindowManager.LayoutParams.TYPE_PHONE
+                    }
+                    format = PixelFormat.TRANSLUCENT
+                    flags =
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                    width  = WindowManager.LayoutParams.MATCH_PARENT
+                    height = WindowManager.LayoutParams.WRAP_CONTENT
+                    gravity = Gravity.TOP
+                }
+
+                stage2BannerView = view
+                windowManager?.addView(view, params)
+                mainHandler.postDelayed({ removeBanner() }, 4000L)
+            } catch (e: Exception) {
+                println("[CF_SERVICE] ✗ [BANNER_STAGE2] ${e.message}")
+            }
+        }
+    }
+
+    private fun removeBanner() {
+        mainHandler.post {
+            try {
+                stage2BannerView?.let { v ->
+                    windowManager?.removeView(v)
+                }
+            } catch (_: Exception) {
+            } finally {
+                stage2BannerView = null
+            }
+        }
+    }
+
+    private fun fetchAndShowSuggestions(excludeVideoId: String, score: Float) {
         scope.launch(Dispatchers.IO) {
+            var suggestionsJson: String? = null
             try {
                 val url = "$BASE_URL/safe_suggestions?limit=3&exclude=$excludeVideoId"
-                val response = http.newCall(
-                    Request.Builder().url(url).build()
-                ).execute()
-                val body = response.body?.string() ?: return@launch
-                val intent = Intent("com.childfocus.SAFE_SUGGESTIONS").apply {
-                    putExtra("suggestions_json", body)
-                }
-                LocalBroadcastManager.getInstance(this@ChildFocusAccessibilityService)
-                    .sendBroadcast(intent)
+                val response = http.newCall(Request.Builder().url(url).build()).execute()
+                suggestionsJson = response.body?.string()
             } catch (e: Exception) {
                 println("[CF_SERVICE] ✗ [SUGGESTIONS] ${e.message}")
             }
+
+            showBlockedOverlay(score, suggestionsJson)
+
+            if (!suggestionsJson.isNullOrEmpty()) {
+                val intent = Intent("com.childfocus.SAFE_SUGGESTIONS").apply {
+                    putExtra("suggestions_json", suggestionsJson)
+                }
+                LocalBroadcastManager.getInstance(this@ChildFocusAccessibilityService)
+                    .sendBroadcast(intent)
+            }
+        }
+    }
+
+    private fun populateSuggestionButtons(container: LinearLayout, suggestionsJson: String) {
+        try {
+            container.removeAllViews()
+            val arr = JSONArray(suggestionsJson)
+            for (i in 0 until arr.length()) {
+                val obj   = arr.getJSONObject(i)
+                val title = obj.optString("title", "Watch this instead")
+                val url   = obj.optString("url", "")
+
+                val btn = Button(this).apply {
+                    text = title
+                    setAllCaps(false)
+                    setOnClickListener {
+                        try {
+                            if (url.isNotEmpty()) {
+                                val intent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(url)
+                                )
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                startActivity(intent)
+                            }
+                            removeBlockedOverlay()
+                        } catch (e: Exception) {
+                            println("[CF_SERVICE] ✗ [OPEN_SUGGESTION] ${e.message}")
+                        }
+                    }
+                }
+                container.addView(btn)
+            }
+        } catch (e: Exception) {
+            println("[CF_SERVICE] ✗ [POPULATE_SUG] ${e.message}")
         }
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // FUSION CONFIG SYNC
+    // FUSION CONFIG SYNC (v7 — dedicated client + SharedPreferences)
     // ══════════════════════════════════════════════════════════════════════════
+
+    private fun saveConfigToPrefs(config: FusionConfig) {
+        val prefs = getSharedPreferences("cf_config", MODE_PRIVATE)
+        prefs.edit()
+            .putFloat("alpha_nb",        config.alpha_nb)
+            .putFloat("beta_heuristic",  config.beta_heuristic)
+            .putFloat("threshold_block", config.threshold_block)
+            .putFloat("threshold_allow", config.threshold_allow)
+            .apply()
+    }
+
+    private fun loadConfigFromPrefs(): FusionConfig {
+        val prefs = getSharedPreferences("cf_config", MODE_PRIVATE)
+        return FusionConfig(
+            alpha_nb        = prefs.getFloat("alpha_nb",        0.4f),
+            beta_heuristic  = prefs.getFloat("beta_heuristic",  0.6f),
+            threshold_block = prefs.getFloat("threshold_block", 0.60f),
+            threshold_allow = prefs.getFloat("threshold_allow", 0.22f),
+        )
+    }
 
     private fun syncFusionConfig() {
         val now = System.currentTimeMillis()
         if (now - configLastFetchedMs < CONFIG_TTL_MS) return
+        if (configFailCount >= CONFIG_FAIL_CAP) {
+            if (now - configLastFetchedMs < CONFIG_TTL_MS * 5) return
+        }
         scope.launch(Dispatchers.IO) {
             try {
-                val response = http.newCall(
+                val response = configHttp.newCall(
                     Request.Builder().url("$BASE_URL/config").build()
                 ).execute()
                 val json   = JSONObject(response.body?.string() ?: return@launch)
@@ -1138,15 +1558,21 @@ class ChildFocusAccessibilityService : AccessibilityService() {
                     threshold_allow = fusion.getDouble("threshold_allow").toFloat(),
                 )
                 configLastFetchedMs = now
+                configFailCount     = 0
+                saveConfigToPrefs(fusionConfig)
                 println("[CF_SERVICE] ✓ [CONFIG] $fusionConfig")
             } catch (e: Exception) {
-                println("[CF_SERVICE] ⚠ [CONFIG_FAIL] ${e.message} — using last known values")
+                configFailCount++
+                println(
+                    "[CF_SERVICE] ⚠ [CONFIG_FAIL] ${e.message} " +
+                            "(fail $configFailCount/$CONFIG_FAIL_CAP) — using persisted values"
+                )
             }
         }
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // CACHE HELPERS
+    // CACHE + NETWORK + BROADCAST HELPERS
     // ══════════════════════════════════════════════════════════════════════════
 
     private fun getCachedResult(normalizedTitle: String): CacheEntry? {
@@ -1157,22 +1583,40 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // NETWORK HELPERS
-    // ══════════════════════════════════════════════════════════════════════════
+    /**
+     * Default POST helper — uses the main [http] client (120 s read timeout).
+     * Appropriate for Tier 1 calls (/classify_full, /classify_by_title) which
+     * legitimately take up to 60 s on first analysis.
+     */
+    private fun postJson(path: String, body: JSONObject): JSONObject =
+        postJsonWithClient(http, path, body)
 
-    private fun postJson(path: String, body: JSONObject): JSONObject {
+    /**
+     * POST helper with a caller-supplied [OkHttpClient].
+     *
+     * FIX (Problem 2): Tier 3 previously called postJson() — which always used
+     * the 120 s main client — and then checked elapsed time AFTER the blocking
+     * call returned.  Because OkHttp blocks until the socket timeout fires, the
+     * in-code TIER3_TIMEOUT_MS guard was effectively dead (logcat confirmed
+     * "[TIER_3] timeout after 44214ms").
+     *
+     * executeTier3() now passes [tier3Http] (9 s read timeout) here so the
+     * deadline is enforced at the socket layer.  A SocketTimeoutException
+     * propagates to executeTier3()'s catch block, which routes to Tier 5.
+     * No other call sites are affected.
+     */
+    private fun postJsonWithClient(
+        client: OkHttpClient,
+        path:   String,
+        body:   JSONObject,
+    ): JSONObject {
         val request = Request.Builder()
             .url("$BASE_URL$path")
             .post(body.toString().toRequestBody("application/json".toMediaType()))
             .build()
-        val response = http.newCall(request).execute()
+        val response = client.newCall(request).execute()
         return JSONObject(response.body?.string() ?: "{}")
     }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // BROADCAST HELPERS
-    // ══════════════════════════════════════════════════════════════════════════
 
     private fun broadcastAnalyzing(videoId: String) {
         broadcastResult(videoId, "Analyzing", 0f, 0, "NONE", false)
@@ -1198,13 +1642,9 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // ON-DEVICE THUMBNAIL INTENSITY
+    // THUMBNAIL INTENSITY + NODE HELPERS
     // ══════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Downloads the thumbnail and computes mean HSV saturation.
-     * Returns 0f if the URL is empty or download fails.
-     */
     private fun computeThumbnailIntensityLocal(url: String): Float {
         if (url.isEmpty()) return 0f
         return try {
@@ -1231,14 +1671,6 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // NODE TREE HELPERS
-    // ══════════════════════════════════════════════════════════════════════════
-
-    /**
-     * Collects all visible text from the accessibility node tree as a flat string.
-     * Skips pure image/progress nodes to reduce noise.
-     */
     private fun collectAllNodeText(node: AccessibilityNodeInfo): String {
         val sb = StringBuilder()
         try {
@@ -1261,10 +1693,6 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         return sb.toString()
     }
 
-    /**
-     * Collects TextNode records (text + on-screen Y bounds) for positional
-     * Shorts extraction. Includes every non-empty node.
-     */
     private fun collectTextNodes(node: AccessibilityNodeInfo): List<TextNode> {
         val result = mutableListOf<TextNode>()
         try {
@@ -1288,10 +1716,6 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         return result
     }
 
-    /**
-     * Returns true when the Shorts player overlay is on screen.
-     * Requires at least 2 of the persistent Shorts action signals.
-     */
     private fun isRealShortsScreen(allText: String): Boolean {
         val root = rootInActiveWindow ?: return false
         val nodes = collectTextNodes(root)
@@ -1306,5 +1730,29 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         return lower.contains("♪") || lower.contains("♫") ||
                 lower.contains("🎵") || lower.contains("🎶") ||
                 lower.contains("original audio") || lower.contains("original sound")
+    }
+
+    // Duration parser for long-form feed pattern
+    private fun parseDurationString(text: String): Int {
+        val longRe = Regex(
+            "(\\d+)\\s+minutes?[,\\s]+(\\d+)\\s+seconds?",
+            RegexOption.IGNORE_CASE
+        )
+        longRe.find(text)?.let {
+            val min = it.groupValues[1].toIntOrNull() ?: 0
+            val sec = it.groupValues[2].toIntOrNull() ?: 0
+            return min * 60 + sec
+        }
+        val shortRe = Regex("(\\d+):(\\d{2})")
+        shortRe.find(text)?.let {
+            val min = it.groupValues[1].toIntOrNull() ?: 0
+            val sec = it.groupValues[2].toIntOrNull() ?: 0
+            return min * 60 + sec
+        }
+        val minOnly = Regex("(\\d+)\\s+minutes?", RegexOption.IGNORE_CASE)
+        minOnly.find(text)?.let {
+            return (it.groupValues[1].toIntOrNull() ?: 0) * 60
+        }
+        return 0
     }
 }

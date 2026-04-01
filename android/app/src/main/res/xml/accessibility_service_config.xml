@@ -13,8 +13,8 @@
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewScrolled|typeViewFocused|typeViewTextChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
+    android:description="@string/accessibility_description"
     android:packageNames="com.google.android.youtube"
     android:canRetrieveWindowContent="true"
     android:notificationTimeout="100"
-    android:settingsActivity="com.childfocus.MainActivity"
-    android:description="@string/accessibility_description" />
+    android:settingsActivity="com.childfocus.MainActivity" />
