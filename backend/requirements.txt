@@ -33,7 +33,7 @@ yt-dlp>=2026.2.21
 # ── Computer Vision ───────────────────────────────────────────────────────────
 # IMPORTANT: numpy must stay < 2.3 to avoid opencv conflict
 numpy>=2.0,<2.3
-opencv-python-headless==4.13.0.92]
+opencv-python-headless==4.13.0.92
 # ── Image Processing ──────────────────────────────────────────────────────────
 Pillow>=11.0.0
 
