@@ -34,6 +34,15 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         private const val TITLE_RESET_MS = 5 * 60 * 1000L
         private const val DEBOUNCE_MS = 1500L
 
+        // ── Screen-time testing flag ──────────────────────────────────────
+        // Set DEBUG_SCREEN_TIME = true to test enforcement quickly:
+        //   • Ticker fires every 10 s instead of 60 s
+        //   • Pass SCREEN_TIME_TEST_LIMIT_MS to ScreenTimeManager as the limit
+        // Remember to flip both back to false / your real limit before release.
+        const val DEBUG_SCREEN_TIME          = true
+        const val SCREEN_TIME_TEST_LIMIT_MS  = 1 * 60 * 1000L   // 1 minute
+        private val TICKER_INTERVAL_MS       = if (DEBUG_SCREEN_TIME) 10_000L else 60_000L
+
         private const val PRIORITY_PLAYING = 3
         private const val PRIORITY_ACTIVE  = 2
 
@@ -154,29 +163,22 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         println("[CF_SERVICE] ✓ Connected — monitoring YouTube + screen time")
         // Start the 60-second tick that enforces limits mid-session
-        mainHandler.postDelayed(screenTimeTicker, 60_000L)
+        mainHandler.postDelayed(screenTimeTicker, TICKER_INTERVAL_MS)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
 
         // ── Screen-time enforcement ──────────────────────────────────────
-        // TYPE_WINDOW_STATE_CHANGED fires for everything: dialogs, IME,
-        // system overlays, notifications — not just app switches.
-        // We filter to genuine Activity-level transitions only; overlays
-        // and dialogs don't end their className with "Activity" so they
-        // won't accidentally reset the foreground timer.
+        // TYPE_WINDOW_STATE_CHANGED fires every time a new Activity / app
+        // comes to the foreground — reliable for foreground-app tracking.
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val pkg = event.packageName?.toString() ?: ""
-            val cls = event.className?.toString()  ?: ""
-            val isActivity = cls.endsWith("Activity") ||
-                    cls.contains("Activity\$") ||
-                    cls.contains(".Activity")
-            if (pkg.isNotEmpty() && isActivity) {
+            if (pkg.isNotEmpty()) {
                 val overLimit = ScreenTimeManager.onAppForeground(this, pkg)
                 if (overLimit) {
                     enforceScreenTimeLimit(pkg)
-                    return
+                    return   // don't run video-classification for a blocked app
                 }
             }
         }
@@ -645,12 +647,8 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             val overLimit = ScreenTimeManager.tick(this@ChildFocusAccessibilityService)
             if (overLimit) {
                 enforceScreenTimeLimit(ScreenTimeManager.getCurrentForegroundPkg())
-            } else {
-                // Not over limit — could be a new day after midnight reset.
-                // Clear the toast gate so it fires again when the next limit is hit.
-                screenTimeLimitEnforced = false
             }
-            mainHandler.postDelayed(this, 60_000L)
+            mainHandler.postDelayed(this, TICKER_INTERVAL_MS)
         }
     }
 

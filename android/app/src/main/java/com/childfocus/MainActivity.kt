@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
@@ -53,6 +54,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -61,20 +64,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.childfocus.ui.LandingScreen
 import com.childfocus.ui.SafetyModeScreen
-import com.childfocus.ui.ScreenTimeScreen       // add this screen in your ui package
+import com.childfocus.ui.ScreenTimeScreen
+import com.childfocus.ui.SessionAuthManager
 import com.childfocus.ui.WebBlockerScreen
 import com.childfocus.ui.theme.ChildFocusTheme
 import com.childfocus.viewmodel.SafetyViewModel
 
 // ─── Nav destinations ─────────────────────────────────────────────────────────
-//
-// FIX: renamed property from `label` → `title` so it never collides with the
-//      `label` named parameter of NavigationBarItem { label = { … } }.
-//      That collision was the source of all three "Unresolved reference" errors.
-//
+
 private sealed class Screen(
     val route: String,
-    val title: String,          // ← was `label`; renamed to `title`
+    val title: String,
     val icon:  ImageVector
 ) {
     object Home        : Screen("home",         "Home",         Icons.Default.Home)
@@ -98,36 +98,13 @@ private val Muted    = Color(0xFF8BA3B8)
 private val ErrorRed = Color(0xFFFF5252)
 
 // ─── System-wide parental password ───────────────────────────────────────────
-//
-// The password is stored as a simple constant here so that every protected
-// feature (Safety Mode toggle, Web Blocker settings, Screen Time limits) shares
-// the same gate.  Swap this out for SharedPreferences / encrypted storage if
-// you want the parent to be able to change the PIN at runtime.
-//
-internal const val PARENTAL_PASSWORD = "1234"   // ← change to your desired PIN
+internal const val PARENTAL_PASSWORD = "1234"
 
-/**
- * Returns true when [input] matches the system-wide parental password.
- * Centralised here so all screens call the same check.
- */
 internal fun isCorrectPassword(input: String): Boolean =
     input == PARENTAL_PASSWORD
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * MainActivity — v8
- *
- * Changes from v7:
- *   • Fixed "Unresolved reference 'label'" by renaming the sealed-class
- *     property to `title` (the named lambda param inside NavigationBarItem
- *     shadows any outer `label`).
- *   • Added a system-wide parental password gate:
- *       – Turning Safety Mode ON requires the password.
- *       – Navigating to Web Blocker or Screen Time tabs requires the password.
- *       – One shared [PasswordGateScreen] composable handles the prompt.
- *   • Added a fourth tab: Screen Time.
- */
 class MainActivity : ComponentActivity() {
 
     private val viewModel: SafetyViewModel by viewModels()
@@ -163,6 +140,37 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // ── 1. Lock session whenever the app goes to background ───────────────
+        // onStop fires on: Home button, Recents button, screen off, or any
+        // other app coming to the foreground.
+        lifecycle.addObserver(LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                SessionAuthManager.onAppStop()   // clears isAuthenticated
+            }
+        })
+
+        // ── 2. Intercept Back button to block task-kill without PIN ───────────
+        // This fires on the hardware/gesture back press. We route it through
+        // SessionAuthManager which either shows the close-confirm PIN dialog
+        // (when Safety Mode is active) or lets the system handle it normally.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val safetyOn = viewModel.safetyModeOn.value
+                if (safetyOn) {
+                    // Safety Mode is active — require PIN to close
+                    SessionAuthManager.onBackPressed()
+                    // The CloseConfirmPinDialog in SafetyModeScreen will now
+                    // appear; when confirmed it calls onConfirmedClose() below
+                    // which calls finishAndRemoveTask().
+                } else {
+                    // Safety Mode is OFF — normal back behaviour
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
+            }
+        })
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
@@ -181,12 +189,14 @@ class MainActivity : ComponentActivity() {
                 val isWaiting     by viewModel.isWaitingForService.collectAsState()
 
                 if (safetyOn) {
-                    // Full-screen safety takeover — turning it OFF is password-gated
-                    // inside SafetyModeScreen itself (pass the checker lambda).
                     SafetyModeScreen(
-                        classifyState  = classifyState,
-                        onTurnOff      = { viewModel.turnOffSafetyMode() },
-                        onDismissBlock = { viewModel.dismissBlock() }
+                        classifyState    = classifyState,
+                        onTurnOff        = { viewModel.turnOffSafetyMode() },
+                        onDismissBlock   = { viewModel.dismissBlock() },
+                        // ── 3. Called after correct PIN in close-confirm dialog ──
+                        // finishAndRemoveTask() closes the app AND removes it from
+                        // the Recents screen so the child cannot swipe back to it.
+                        onConfirmedClose = { finishAndRemoveTask() }
                     )
                 } else {
                     ChildFocusApp(
@@ -265,7 +275,6 @@ class MainActivity : ComponentActivity() {
 
 // ─── Root composable: bottom-nav shell ───────────────────────────────────────
 
-// Routes that require the parental password before showing their content.
 private val PASSWORD_PROTECTED_ROUTES = setOf(
     Screen.Safety.route,
     Screen.WebBlocker.route,
@@ -276,13 +285,7 @@ private val PASSWORD_PROTECTED_ROUTES = setOf(
 private fun ChildFocusApp(isWaiting: Boolean, onTurnOn: () -> Unit) {
     val navController = rememberNavController()
 
-    // Once the parent enters the correct password, this flips to true for the
-    // entire session — they can freely switch between Safety Mode, Web Blocker,
-    // and Screen Time without being asked again.
-    var isParentUnlocked by remember { mutableStateOf(false) }
-
-    // Holds the destination route the parent was trying to reach when the gate
-    // appeared. null means the gate is not visible.
+    var isParentUnlocked      by remember { mutableStateOf(false) }
     var pendingProtectedRoute by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
@@ -292,14 +295,12 @@ private fun ChildFocusApp(isWaiting: Boolean, onTurnOn: () -> Unit) {
                 navController = navController,
                 onProtectedTabClick = { route ->
                     if (isParentUnlocked) {
-                        // Already unlocked this session — navigate straight away.
                         navController.navigate(route) {
                             popUpTo(Screen.Home.route) { saveState = true }
                             launchSingleTop = true
                             restoreState    = true
                         }
                     } else {
-                        // Show the gate once; remember where we wanted to go.
                         pendingProtectedRoute = route
                     }
                 }
@@ -309,7 +310,6 @@ private fun ChildFocusApp(isWaiting: Boolean, onTurnOn: () -> Unit) {
 
         Box(modifier = Modifier.padding(innerPadding)) {
 
-            // ── Main nav graph ────────────────────────────────────────────────
             NavHost(
                 navController    = navController,
                 startDestination = Screen.Home.route
@@ -328,11 +328,10 @@ private fun ChildFocusApp(isWaiting: Boolean, onTurnOn: () -> Unit) {
                 }
             }
 
-            // ── Password gate overlay (shown only once per session) ───────────
             pendingProtectedRoute?.let { targetRoute ->
                 PasswordGateScreen(
                     onSuccess = {
-                        isParentUnlocked      = true   // unlock ALL protected tabs
+                        isParentUnlocked      = true
                         pendingProtectedRoute = null
                         navController.navigate(targetRoute) {
                             popUpTo(Screen.Home.route) { saveState = true }
@@ -370,7 +369,6 @@ private fun ChildFocusBottomBar(
                 onClick  = {
                     if (!selected) {
                         if (screen.route in PASSWORD_PROTECTED_ROUTES) {
-                            // Ask for the parental password first.
                             onProtectedTabClick(screen.route)
                         } else {
                             navController.navigate(screen.route) {
@@ -381,8 +379,6 @@ private fun ChildFocusBottomBar(
                         }
                     }
                 },
-                // FIX: use `screen.title` (renamed property) — no more clash
-                //      with the NavigationBarItem lambda param named `label`.
                 icon  = { Icon(screen.icon, contentDescription = screen.title) },
                 label = { Text(screen.title) },
                 colors = NavigationBarItemDefaults.colors(
@@ -399,11 +395,6 @@ private fun ChildFocusBottomBar(
 
 // ─── Parental password gate ───────────────────────────────────────────────────
 
-/**
- * Full-screen overlay that asks for the parental password before granting
- * access to [featureName].  Shared by Safety Mode, Web Blocker, and
- * Screen Time — any feature that should be parent-only.
- */
 @Composable
 private fun PasswordGateScreen(
     onSuccess: () -> Unit,

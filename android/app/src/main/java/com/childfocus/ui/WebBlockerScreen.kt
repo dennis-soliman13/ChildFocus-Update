@@ -72,29 +72,18 @@ fun isWebBlockerServiceEnabled(context: Context): Boolean {
 }
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
+// Authentication is now managed globally by SafetyModeScreen via
+// SessionAuthManager.  By the time this composable is displayed the parent is
+// already authenticated, so we jump straight to the dashboard.
+// The `onLock` lambda is wired to SessionAuthManager.lock() by the caller.
 @Composable
 fun WebBlockerScreen() {
-    val context = LocalContext.current
-    val prefs   = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    var isAuthenticated by remember { mutableStateOf(false) }
-
-    AnimatedContent(
-        targetState    = isAuthenticated,
-        transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(200)) },
-        label          = "auth"
-    ) { authenticated ->
-        if (authenticated) {
-            WebBlockerDashboard(onLock = { isAuthenticated = false })
-        } else {
-            PinGateScreen(
-                storedPin    = prefs.getString(PREFS_PIN_KEY, DEFAULT_PIN) ?: DEFAULT_PIN,
-                onPinCorrect = { isAuthenticated = true }
-            )
-        }
-    }
+    // No local isAuthenticated — the global gate in SafetyModeScreen handles it.
+    WebBlockerDashboard(onLock = { SessionAuthManager.lock() })
 }
 
 // ─── PIN gate screen ──────────────────────────────────────────────────────────
+// Still kept here (internal) so SafetyModeScreen can call it directly.
 @Composable
 internal fun PinGateScreen(
     storedPin    : String,
@@ -183,13 +172,14 @@ internal fun PinGateScreen(
                                     }
                                 }
                             },
-                            enabled  = key.isNotEmpty(),
                             shape    = RoundedCornerShape(50),
-                            color    = if (key.isNotEmpty()) NavyMid else Color.Transparent,
+                            color    = if (key.isEmpty()) Color.Transparent else NavyMid,
                             modifier = Modifier.size(72.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(key, fontSize = 22.sp, color = OffWhite, fontWeight = FontWeight.Medium)
+                                if (key.isNotEmpty()) {
+                                    Text(key, fontSize = 22.sp, color = OffWhite, fontWeight = FontWeight.Medium)
+                                }
                             }
                         }
                     }
@@ -200,31 +190,23 @@ internal fun PinGateScreen(
     }
 }
 
-// ─── Main dashboard ───────────────────────────────────────────────────────────
+// ─── Dashboard (previously shown after local auth) ───────────────────────────
 @Composable
-private fun WebBlockerDashboard(onLock: () -> Unit) {
+internal fun WebBlockerDashboard(onLock: () -> Unit) {
     val context      = LocalContext.current
-    // Safety net: init here too in case ChildFocusApp.onCreate() did not run first
-    WebBlockerManager.init(context)
-
-    var blockedSites by remember { mutableStateOf(WebBlockerManager.getBlockedSites().toList().sorted()) }
-    var isEnabled    by remember { mutableStateOf(WebBlockerManager.isEnabled) }
-    var newSite      by remember { mutableStateOf("") }
+    val prefs        = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    var blockedSites by remember { mutableStateOf(WebBlockerManager.getBlockedSites().toList()) }
+    var newDomain    by remember { mutableStateOf("") }
     var showPinDialog by remember { mutableStateOf(false) }
-    var serviceOn    by remember { mutableStateOf(isWebBlockerServiceEnabled(context)) }
+    var serviceEnabled by remember { mutableStateOf(isWebBlockerServiceEnabled(context)) }
 
-    val focusRequester = remember { FocusRequester() }
-    val focusManager   = LocalFocusManager.current
+    fun refresh() { blockedSites = WebBlockerManager.getBlockedSites().toList() }
 
-    fun refresh() {
-        blockedSites = WebBlockerManager.getBlockedSites().toList().sorted()
-    }
-
-    // Poll service status every 2 seconds so banner updates when user enables it
+    // Re-check the accessibility service every second while the screen is visible
     LaunchedEffect(Unit) {
         while (true) {
-            serviceOn = isWebBlockerServiceEnabled(context)
-            delay(2000)
+            serviceEnabled = isWebBlockerServiceEnabled(context)
+            delay(1_000)
         }
     }
 
@@ -235,246 +217,187 @@ private fun WebBlockerDashboard(onLock: () -> Unit) {
         )
     }
 
-    Column(
-        Modifier
+    LazyColumn(
+        modifier = Modifier
             .fillMaxSize()
-            .background(NavyDark)
+            .background(
+                Brush.verticalGradient(listOf(Color(0xFF0D1B2A), Color(0xFF0A1A2E)))
+            )
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // ── Top bar ──────────────────────────────────────────────────────────
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .background(Brush.horizontalGradient(listOf(NavyMid, Color(0xFF243B55))))
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-        ) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Shield, null, tint = Teal, modifier = Modifier.size(24.dp))
-                    Spacer(Modifier.width(10.dp))
-                    Text("Web Blocker", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = OffWhite,
-                        modifier = Modifier.weight(1f))
-                    IconButton(onClick = { showPinDialog = true }) {
-                        Icon(Icons.Default.Settings, "Change PIN", tint = Muted)
-                    }
-                    IconButton(onClick = onLock) {
-                        Icon(Icons.Default.Lock, "Lock", tint = Muted)
-                    }
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                // Master toggle
-                Row(verticalAlignment = Alignment.CenterVertically) {
+        // ── Header ────────────────────────────────────────────────────────────
+        item {
+            Row(
+                modifier          = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
                     Text(
-                        if (isEnabled) "Blocking: ON" else "Blocking: OFF",
-                        color = if (isEnabled) Teal else Muted,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f)
+                        "🌐 Web Blocker", fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold, color = Teal
                     )
-                    Switch(
-                        checked         = isEnabled,
-                        onCheckedChange = {
-                            isEnabled = it
-                            WebBlockerManager.isEnabled = it
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor       = Teal,
-                            checkedTrackColor       = Teal.copy(alpha = .3f),
-                            uncheckedThumbColor     = Muted,
-                            uncheckedTrackColor     = Muted.copy(alpha = .2f),
-                        )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "Block harmful websites on this device",
+                        fontSize = 13.sp, color = Muted
                     )
+                }
+                // Settings / Change PIN
+                IconButton(onClick = { showPinDialog = true }) {
+                    Icon(Icons.Default.Settings, "Settings", tint = Muted)
+                }
+                // Lock session
+                IconButton(onClick = onLock) {
+                    Icon(Icons.Default.Lock, "Lock", tint = Muted)
                 }
             }
         }
 
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        // ── Service status banner ─────────────────────────────────────────────
+        item {
+            val (bannerColor, bannerText, bannerIcon) = if (serviceEnabled)
+                Triple(Color(0xFF0D2E1E), "Accessibility service is active", Icons.Default.CheckCircle)
+            else
+                Triple(Color(0xFF2E1A0D), "Accessibility service is OFF — tap to enable", Icons.Default.Warning)
 
-            // ── Accessibility service status banner ───────────────────────
-            item {
-                if (!serviceOn) {
-                    Surface(
-                        shape  = RoundedCornerShape(12.dp),
-                        color  = RedAlert.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, RedAlert.copy(alpha = 0.4f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(Modifier.padding(14.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Warning, null, tint = RedAlert, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "Accessibility Service Not Enabled",
-                                    color = RedAlert, fontWeight = FontWeight.Bold, fontSize = 14.sp
-                                )
-                            }
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                "The web blocker won't work until you enable it in Android Accessibility Settings.",
-                                color = OffWhite.copy(alpha = 0.8f), fontSize = 12.sp
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Steps: Settings → Accessibility → Installed Apps → ChildFocus Web Blocker → Enable",
-                                color = Muted, fontSize = 11.sp
-                            )
-                            Spacer(Modifier.height(10.dp))
-                            Button(
-                                onClick = {
-                                    context.startActivity(
-                                        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                    )
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Teal),
-                                shape  = RoundedCornerShape(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(Icons.Default.OpenInNew, null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Open Accessibility Settings", fontWeight = FontWeight.Bold, color = NavyDark)
-                            }
-                        }
+            Surface(
+                onClick  = {
+                    if (!serviceEnabled) {
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                     }
-                } else {
-                    Surface(
-                        shape  = RoundedCornerShape(12.dp),
-                        color  = Teal.copy(alpha = 0.08f),
-                        border = BorderStroke(1.dp, Teal.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.CheckCircle, null, tint = Teal, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Accessibility Service Active — Blocking is running", color = Teal, fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-
-            // ── Add site input ────────────────────────────────────────────
-            item {
-                Text("Add Site to Block", color = Muted, fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 4.dp))
-                Spacer(Modifier.height(6.dp))
+                },
+                shape    = RoundedCornerShape(12.dp),
+                color    = bannerColor,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment     = Alignment.CenterVertically
+                    modifier          = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
-                        value             = newSite,
-                        onValueChange     = { newSite = it },
-                        placeholder       = { Text("e.g. example.com", color = Muted, fontSize = 13.sp) },
-                        singleLine        = true,
-                        keyboardOptions   = KeyboardOptions(
-                            keyboardType = KeyboardType.Uri,
-                            imeAction    = ImeAction.Done
-                        ),
-                        keyboardActions   = KeyboardActions(onDone = {
-                            if (newSite.isNotBlank()) {
-                                WebBlockerManager.addSite(newSite.trim())
-                                newSite = ""
-                                focusManager.clearFocus()
-                                refresh()
-                            }
-                        }),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor   = Teal,
-                            unfocusedBorderColor = Muted.copy(alpha = .4f),
-                            focusedTextColor     = OffWhite,
-                            unfocusedTextColor   = OffWhite,
-                            cursorColor          = Teal,
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .focusRequester(focusRequester)
+                    Icon(
+                        bannerIcon, null,
+                        tint     = if (serviceEnabled) Teal else Color(0xFFFFB74D),
+                        modifier = Modifier.size(20.dp)
                     )
-                    Button(
-                        onClick = {
-                            if (newSite.isNotBlank()) {
-                                WebBlockerManager.addSite(newSite.trim())
-                                newSite = ""
-                                focusManager.clearFocus()
-                                refresh()
-                            }
-                        },
-                        colors   = ButtonDefaults.buttonColors(containerColor = Teal),
-                        shape    = RoundedCornerShape(10.dp),
-                        modifier = Modifier.height(56.dp)
-                    ) {
-                        Icon(Icons.Default.Add, "Add", tint = NavyDark)
-                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(bannerText, color = OffWhite, fontSize = 13.sp)
                 }
             }
+        }
 
-            // ── Quick presets ─────────────────────────────────────────────
-            item {
-                Text("Quick Presets", color = Muted, fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 4.dp))
-                Spacer(Modifier.height(8.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PRESETS.chunked(2).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            row.forEach { preset ->
-                                PresetChip(
-                                    preset   = preset,
-                                    onClick  = { preset.domains.forEach { WebBlockerManager.addSite(it) }; refresh() },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            if (row.size == 1) Spacer(Modifier.weight(1f))
+        // ── Add domain input ──────────────────────────────────────────────────
+        item {
+            val focusRequester = remember { FocusRequester() }
+            val focusManager   = LocalFocusManager.current
+
+            Row(
+                verticalAlignment  = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value         = newDomain,
+                    onValueChange = { newDomain = it.trim() },
+                    placeholder   = { Text("example.com", color = Muted.copy(alpha = .5f)) },
+                    singleLine    = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Uri,
+                        imeAction    = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = {
+                        if (newDomain.isNotBlank()) {
+                            WebBlockerManager.addSite(newDomain.lowercase())
+                            newDomain = ""
+                            focusManager.clearFocus()
+                            refresh()
                         }
-                    }
-                }
-            }
-
-            // ── Blocked list header ───────────────────────────────────────
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                    }),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = Teal,
+                        unfocusedBorderColor = Muted.copy(alpha = .3f),
+                        focusedTextColor     = OffWhite,
+                        unfocusedTextColor   = OffWhite,
+                        cursorColor          = Teal,
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester)
+                )
+                Button(
+                    onClick = {
+                        if (newDomain.isNotBlank()) {
+                            WebBlockerManager.addSite(newDomain.lowercase())
+                            newDomain = ""
+                            focusManager.clearFocus()
+                            refresh()
+                        }
+                    },
+                    colors   = ButtonDefaults.buttonColors(containerColor = Teal),
+                    shape    = RoundedCornerShape(10.dp),
+                    modifier = Modifier.height(56.dp)
                 ) {
-                    Text("Blocked Sites", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.width(8.dp))
-                    Surface(shape = RoundedCornerShape(20.dp), color = Teal.copy(alpha = .15f)) {
-                        Text("${blockedSites.size}", color = Teal, fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
-                    }
-                    if (blockedSites.isNotEmpty()) {
-                        Spacer(Modifier.weight(1f))
-                        TextButton(onClick = { WebBlockerManager.clearAll(); refresh() }) {
-                            Text("Clear All", color = RedAlert, fontSize = 12.sp)
+                    Icon(Icons.Default.Add, "Add", tint = NavyDark)
+                }
+            }
+        }
+
+        // ── Quick presets ─────────────────────────────────────────────────────
+        item {
+            Text("Quick Presets", color = Muted, fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 4.dp))
+            Spacer(Modifier.height(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PRESETS.chunked(2).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { preset ->
+                            PresetChip(
+                                preset   = preset,
+                                onClick  = { preset.domains.forEach { WebBlockerManager.addSite(it) }; refresh() },
+                                modifier = Modifier.weight(1f)
+                            )
                         }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }
+        }
 
-            // ── Empty state ───────────────────────────────────────────────
-            if (blockedSites.isEmpty()) {
-                item {
-                    Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.CheckCircle, null, tint = Muted, modifier = Modifier.size(40.dp))
-                            Spacer(Modifier.height(8.dp))
-                            Text("No sites blocked yet", color = Muted, fontSize = 14.sp)
-                            Text("Add a domain above or use a quick preset", color = Muted.copy(alpha = .6f), fontSize = 12.sp)
-                        }
+        // ── Blocked list header ───────────────────────────────────────────────
+        item {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            ) {
+                Text("Blocked Sites", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.width(8.dp))
+                Surface(shape = RoundedCornerShape(20.dp), color = Teal.copy(alpha = .15f)) {
+                    Text("${blockedSites.size}", color = Teal, fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+                }
+                if (blockedSites.isNotEmpty()) {
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { WebBlockerManager.clearAll(); refresh() }) {
+                        Text("Clear All", color = RedAlert, fontSize = 12.sp)
                     }
                 }
-            } else {
-                items(blockedSites, key = { it }) { site ->
-                    BlockedSiteRow(site = site, onRemove = { WebBlockerManager.removeSite(site); refresh() })
+            }
+        }
+
+        // ── Empty state ───────────────────────────────────────────────────────
+        if (blockedSites.isEmpty()) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.CheckCircle, null, tint = Muted, modifier = Modifier.size(40.dp))
+                        Spacer(Modifier.height(8.dp))
+                        Text("No sites blocked yet", color = Muted, fontSize = 14.sp)
+                        Text("Add a domain above or use a quick preset", color = Muted.copy(alpha = .6f), fontSize = 12.sp)
+                    }
                 }
+            }
+        } else {
+            items(blockedSites, key = { it }) { site ->
+                BlockedSiteRow(site = site, onRemove = { WebBlockerManager.removeSite(site); refresh() })
             }
         }
     }
