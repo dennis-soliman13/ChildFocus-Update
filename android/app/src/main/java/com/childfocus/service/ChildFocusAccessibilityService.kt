@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.Toast
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         // ── Change this ONE line to switch targets ────────────────────────
         // Emulator (Pixel AVD) → "10.0.2.2"
         // Physical (same WiFi) → your PC's local IP e.g. "192.168.1.x"
-        private const val FLASK_HOST = "192.168.1.18"
+        private const val FLASK_HOST = "192.168.100.241"
         private const val FLASK_PORT = 5000
         private const val BASE_URL = "http://$FLASK_HOST:$FLASK_PORT"
 
@@ -122,6 +123,7 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     @Volatile private var shortsPendingTitle = ""
     @Volatile private var lastExtractedShortsKey  = ""
     @Volatile private var lastShortsScreenHash   = 0
+    @Volatile private var screenTimeLimitEnforced = false  // prevent toast spam
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -150,11 +152,34 @@ class ChildFocusAccessibilityService : AccessibilityService() {
     // ═══════════════════════════════════════════════════════════════════════
 
     override fun onServiceConnected() {
-        println("[CF_SERVICE] ✓ Connected — monitoring YouTube")
+        println("[CF_SERVICE] ✓ Connected — monitoring YouTube + screen time")
+        // Start the 60-second tick that enforces limits mid-session
+        mainHandler.postDelayed(screenTimeTicker, 60_000L)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
+
+        // ── Screen-time enforcement ──────────────────────────────────────
+        // TYPE_WINDOW_STATE_CHANGED fires for everything: dialogs, IME,
+        // system overlays, notifications — not just app switches.
+        // We filter to genuine Activity-level transitions only; overlays
+        // and dialogs don't end their className with "Activity" so they
+        // won't accidentally reset the foreground timer.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            val pkg = event.packageName?.toString() ?: ""
+            val cls = event.className?.toString()  ?: ""
+            val isActivity = cls.endsWith("Activity") ||
+                    cls.contains("Activity\$") ||
+                    cls.contains(".Activity")
+            if (pkg.isNotEmpty() && isActivity) {
+                val overLimit = ScreenTimeManager.onAppForeground(this, pkg)
+                if (overLimit) {
+                    enforceScreenTimeLimit(pkg)
+                    return
+                }
+            }
+        }
 
         val now = System.currentTimeMillis()
         if (lastSentTitle.isNotEmpty() && (now - lastSentTimeMs) > TITLE_RESET_MS) {
@@ -254,6 +279,8 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
         currentJob.cancel()
+        mainHandler.removeCallbacks(screenTimeTicker)
+        ScreenTimeManager.onAppBackground(this)
         lastSentTitle      = ""
         lastSentTimeMs     = 0L
         pendingTitle       = ""
@@ -263,6 +290,13 @@ class ChildFocusAccessibilityService : AccessibilityService() {
         shortsPendingTitle     = ""
         lastExtractedShortsKey  = ""
         lastShortsScreenHash   = 0
+        screenTimeLimitEnforced = false
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mainHandler.removeCallbacks(screenTimeTicker)
+        ScreenTimeManager.onAppBackground(this)
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -602,6 +636,24 @@ class ChildFocusAccessibilityService : AccessibilityService() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    // ── Screen-time periodic ticker ───────────────────────────────────────
+    // Runs every 60 s while the service is alive. Flushes the current
+    // foreground window and re-checks the limit so the block fires
+    // mid-session rather than only on the next app switch.
+    private val screenTimeTicker = object : Runnable {
+        override fun run() {
+            val overLimit = ScreenTimeManager.tick(this@ChildFocusAccessibilityService)
+            if (overLimit) {
+                enforceScreenTimeLimit(ScreenTimeManager.getCurrentForegroundPkg())
+            } else {
+                // Not over limit — could be a new day after midnight reset.
+                // Clear the toast gate so it fires again when the next limit is hit.
+                screenTimeLimitEnforced = false
+            }
+            mainHandler.postDelayed(this, 60_000L)
+        }
+    }
+
     /**
      * Pauses YouTube then navigates home to fully remove the blocked video.
      * Must run on the main thread — dispatched via mainHandler from IO coroutines.
@@ -620,6 +672,28 @@ class ChildFocusAccessibilityService : AccessibilityService() {
             mainHandler.postDelayed({
                 performGlobalAction(GLOBAL_ACTION_HOME)
             }, 300)
+        }
+    }
+
+    /**
+     * Called when a package has exceeded its configured daily limit.
+     * Sends the user home and shows a toast — you can replace the toast
+     * with a full BlockOverlayService call if preferred.
+     */
+    private fun enforceScreenTimeLimit(packageName: String) {
+        mainHandler.post {
+            // Always kick back to home — runs every time the app is (re)opened
+            performGlobalAction(GLOBAL_ACTION_HOME)
+
+            // Toast shown only once per enforcement session to avoid spam
+            if (!screenTimeLimitEnforced) {
+                screenTimeLimitEnforced = true
+                Toast.makeText(
+                    this,
+                    "⏱️ Daily screen time limit reached for this app.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 

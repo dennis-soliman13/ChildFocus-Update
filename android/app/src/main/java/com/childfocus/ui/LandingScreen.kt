@@ -15,7 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun LandingScreen(onTurnOn: () -> Unit) {
+fun LandingScreen(
+    isWaiting: Boolean = false,
+    onTurnOn: () -> Unit
+) {
 
     val bgGradient = Brush.verticalGradient(
         colors = listOf(Color(0xFF0D1B2A), Color(0xFF1B2838))
@@ -75,24 +78,43 @@ fun LandingScreen(onTurnOn: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // CTA Button
+            // CTA Button — shows a loading indicator while waiting for the
+            // accessibility service to be enabled in Settings.
             Button(
                 onClick = onTurnOn,
+                enabled = !isWaiting,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4FC3F7)
+                    containerColor = Color(0xFF4FC3F7),
+                    disabledContainerColor = Color(0xFF4FC3F7).copy(alpha = 0.5f)
                 )
             ) {
-                Text(
-                    text = "TURN ON SAFETY MODE",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color(0xFF0D1B2A),
-                    letterSpacing = 1.sp
-                )
+                if (isWaiting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = Color(0xFF0D1B2A),
+                        strokeWidth = 2.5.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "WAITING FOR SERVICE…",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color(0xFF0D1B2A),
+                        letterSpacing = 1.sp
+                    )
+                } else {
+                    Text(
+                        text = "TURN ON SAFETY MODE",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color(0xFF0D1B2A),
+                        letterSpacing = 1.sp
+                    )
+                }
             }
 
             Text(

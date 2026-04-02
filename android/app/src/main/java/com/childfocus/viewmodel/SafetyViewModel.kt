@@ -1,95 +1,82 @@
 package com.childfocus.viewmodel
 
 import android.app.Application
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import androidx.lifecycle.AndroidViewModel
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.childfocus.BlockOverlayService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-// ── Sealed state that the UI observes ──────────────────────────────────────
+// ── Sealed state that the UI observes ─────────────────────────────────────────
 sealed class ClassifyState {
-    object Idle : ClassifyState()
-    data class Analyzing(val videoId: String) : ClassifyState()
-    data class Blocked(
-        val videoId: String,
-        val label: String,
-        val score: Float
-    ) : ClassifyState()
-    data class Safe(val videoId: String, val label: String) : ClassifyState()
+    object Idle      : ClassifyState()
+    data class Analyzing(val videoId: String)                          : ClassifyState()
+    data class Blocked(val videoId: String, val score: Float)          : ClassifyState()
+    data class Error(val videoId: String)                              : ClassifyState()
+    data class Allowed(val label: String, val score: Float, val cached: Boolean) : ClassifyState()
 }
 
 class SafetyViewModel(application: Application) : AndroidViewModel(application) {
 
-    // ── Safety mode toggle ─────────────────────────────────────────────────
+    // ── Safety mode toggle ─────────────────────────────────────────────────────
     private val _safetyModeOn = MutableStateFlow(false)
     val safetyModeOn: StateFlow<Boolean> = _safetyModeOn
 
-    // ── Classification state ───────────────────────────────────────────────
+    // ── Classification state ───────────────────────────────────────────────────
     private val _classifyState = MutableStateFlow<ClassifyState>(ClassifyState.Idle)
     val classifyState: StateFlow<ClassifyState> = _classifyState
 
-    // ── Broadcast receiver ─────────────────────────────────────────────────
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (!_safetyModeOn.value) return          // ignore if safety mode is off
+    // ── Waiting-for-accessibility-service flag ─────────────────────────────────
+    private val _isWaitingForService = MutableStateFlow(false)
+    val isWaitingForService: StateFlow<Boolean> = _isWaitingForService
 
-            val videoId = intent.getStringExtra("video_id") ?: return
-            val label   = intent.getStringExtra("oir_label") ?: "Neutral"
-            val score   = intent.getFloatExtra("score_final", 0f)
+    // ── Public state setters (called from MainActivity's broadcast receiver) ───
 
-            when {
-                // "Analyzing" is a transient state — show spinner
-                label == "Analyzing" -> {
-                    _classifyState.value = ClassifyState.Analyzing(videoId)
-                }
-
-                // Overstimulating threshold — trigger block
-                label.equals("Overstimulating", ignoreCase = true) ||
-                        label.equals("Overstimulation", ignoreCase = true) -> {
-                    _classifyState.value = ClassifyState.Blocked(videoId, label, score)
-                    // Also start the overlay service directly so it works even
-                    // when the app is in the background / screen is on YouTube
-                    BlockOverlayService.show(context, videoId, label, score)
-                }
-
-                else -> {
-                    _classifyState.value = ClassifyState.Safe(videoId, label)
-                }
-            }
-        }
+    fun setAnalyzing(videoId: String) {
+        _classifyState.value = ClassifyState.Analyzing(videoId)
     }
 
-    init {
-        // Register for classification results from ChildFocusAccessibilityService
-        LocalBroadcastManager.getInstance(application).registerReceiver(
-            receiver,
-            IntentFilter("com.childfocus.CLASSIFICATION_RESULT")
-        )
+    fun setBlocked(videoId: String, score: Float) {
+        _classifyState.value = ClassifyState.Blocked(videoId, score)
     }
 
-    // ── Public actions ─────────────────────────────────────────────────────
-
-    fun toggleSafetyMode() {
-        _safetyModeOn.value = !_safetyModeOn.value
-        if (!_safetyModeOn.value) {
-            // Turning off — hide any active overlay and reset state
-            BlockOverlayService.hide(getApplication())
-            _classifyState.value = ClassifyState.Idle
-        }
+    fun setError(videoId: String) {
+        _classifyState.value = ClassifyState.Error(videoId)
     }
 
-    fun dismissBlock() {
-        BlockOverlayService.hide(getApplication())
+    fun setAllowed(label: String, score: Float, cached: Boolean) {
+        _classifyState.value = ClassifyState.Allowed(label, score, cached)
+    }
+
+    // ── Safety mode actions ────────────────────────────────────────────────────
+
+    /** Called when the user taps "Turn Off" inside SafetyModeScreen. */
+    fun turnOffSafetyMode() {
+        _safetyModeOn.value  = false
         _classifyState.value = ClassifyState.Idle
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        LocalBroadcastManager.getInstance(getApplication()).unregisterReceiver(receiver)
+    /** Clears a block card without turning off safety mode. */
+    fun dismissBlock() {
+        _classifyState.value = ClassifyState.Idle
+    }
+
+    // ── Accessibility-service handshake ───────────────────────────────────────
+
+    /**
+     * Called by MainActivity when the user returns from Accessibility Settings
+     * and the service is now active.  Turns safety mode on and clears the
+     * waiting flag.
+     */
+    fun onServiceConfirmed() {
+        _isWaitingForService.value = false
+        _safetyModeOn.value        = true
+        _classifyState.value       = ClassifyState.Idle
+    }
+
+    /**
+     * Flipped to `true` while we wait for the user to enable the service in
+     * Settings, so the UI can show a loading/waiting indicator.
+     */
+    fun setWaitingForService(waiting: Boolean) {
+        _isWaitingForService.value = waiting
     }
 }

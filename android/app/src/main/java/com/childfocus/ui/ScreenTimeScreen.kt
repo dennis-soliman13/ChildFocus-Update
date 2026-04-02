@@ -1,5 +1,4 @@
 package com.childfocus.ui
-
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -40,14 +39,14 @@ private val TRACKED_APPS = listOf(
     AppLimit("Snapchat",      "com.snapchat.android",             "👻"),
 )
 
-private const val PREFS_NAME      = "screen_time_prefs"
-private const val KEY_TOTAL_LIMIT = "total_daily_limit_minutes"
+private const val SCREEN_TIME_PREFS_NAME = "screen_time_prefs"
+private const val KEY_TOTAL_LIMIT        = "total_daily_limit_minutes"
 
 private fun limitKey(pkg: String)    = "limit_$pkg"
 private fun enabledKey(pkg: String)  = "enabled_$pkg"
 
 private fun getPrefs(context: Context) =
-    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    context.getSharedPreferences(SCREEN_TIME_PREFS_NAME, Context.MODE_PRIVATE)
 
 private fun getTotalLimit(context: Context): Int =
     getPrefs(context).getInt(KEY_TOTAL_LIMIT, 120)
@@ -319,10 +318,13 @@ private fun LimitPickerDialog(
     onDismiss: () -> Unit
 ) {
     // Preset options in minutes
-    val presets = listOf(15, 30, 45, 60, 90, 120, 180, 240)
-    var selected by remember { mutableIntStateOf(
-        if (currentMin in presets) currentMin else presets[3]
-    ) }
+    val presets = listOf(-1, 15, 30, 45, 60, 90, 120, 180, 240)
+
+    var selected by remember {
+        mutableIntStateOf(
+            if (currentMin in presets) currentMin else presets[4]
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -343,6 +345,7 @@ private fun LimitPickerDialog(
                     fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+
                 // Grid of preset chips
                 presets.chunked(4).forEach { row ->
                     Row(
@@ -351,6 +354,7 @@ private fun LimitPickerDialog(
                     ) {
                         row.forEach { preset ->
                             val isSelected = selected == preset
+
                             Surface(
                                 onClick  = { selected = preset },
                                 shape    = RoundedCornerShape(8.dp),
@@ -358,15 +362,16 @@ private fun LimitPickerDialog(
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text(
-                                    text      = formatMinutes(preset),
-                                    color     = if (isSelected) Color(0xFF0D1B2A) else Color(0xFF90CAF9),
-                                    fontSize  = 12.sp,
+                                    text = if (preset == -1) "10s" else formatMinutes(preset),
+                                    color = if (isSelected) Color(0xFF0D1B2A) else Color(0xFF90CAF9),
+                                    fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     textAlign = TextAlign.Center,
-                                    modifier  = Modifier.padding(vertical = 10.dp)
+                                    modifier = Modifier.padding(vertical = 10.dp)
                                 )
                             }
                         }
+
                         // pad last row if needed
                         repeat(4 - row.size) {
                             Spacer(modifier = Modifier.weight(1f))

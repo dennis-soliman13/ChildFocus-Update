@@ -57,9 +57,9 @@ private val PRESETS = listOf(
     Preset("📱 Social",   listOf("tiktok.com","instagram.com","snapchat.com","twitter.com","x.com")),
 )
 
-private const val DEFAULT_PIN   = "1234"
-private const val PREFS_NAME    = "web_blocker_prefs"
-private const val PREFS_PIN_KEY = "parent_pin"
+internal const val DEFAULT_PIN   = "1234"
+internal const val PREFS_NAME    = "web_blocker_prefs"
+internal const val PREFS_PIN_KEY = "parent_pin"
 
 // ─── Helper: check if WebBlockerAccessibilityService is enabled ───────────────
 fun isWebBlockerServiceEnabled(context: Context): Boolean {
@@ -96,7 +96,11 @@ fun WebBlockerScreen() {
 
 // ─── PIN gate screen ──────────────────────────────────────────────────────────
 @Composable
-private fun PinGateScreen(storedPin: String, onPinCorrect: () -> Unit) {
+internal fun PinGateScreen(
+    storedPin    : String,
+    onPinCorrect : () -> Unit,
+    subtitle     : String = "Enter your PIN to manage blocked sites",
+) {
     var pin      by remember { mutableStateOf("") }
     var hasError by remember { mutableStateOf(false) }
     val offsetX  = remember { Animatable(0f) }
@@ -131,7 +135,7 @@ private fun PinGateScreen(storedPin: String, onPinCorrect: () -> Unit) {
             Text("Parent Access", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = OffWhite)
             Spacer(Modifier.height(6.dp))
             Text(
-                "Enter your PIN to manage blocked sites",
+                subtitle,
                 fontSize = 13.sp, color = Muted, textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(32.dp))
