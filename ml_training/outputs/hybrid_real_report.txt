@@ -1,5 +1,5 @@
 ChildFocus — Real Hybrid Model Evaluation Report
-Generated : 2026-03-24 22:48:58.937759
+Generated : 2026-04-04 06:17:20.608580
 Alpha(NB) : 0.4 | Beta(H): 0.6
 Thresholds: Block >= 0.75 | Allow <= 0.35
 ============================================================
@@ -7,56 +7,56 @@ Thresholds: Block >= 0.75 | Allow <= 0.35
 CLASSIFICATION REPORT
                  precision    recall  f1-score   support
 
-    Educational     0.3704    1.0000    0.5405        10
+    Educational     0.3448    1.0000    0.5128        10
         Neutral     0.0000    0.0000    0.0000        10
 Overstimulating     0.0000    0.0000    0.0000        10
 
        accuracy                         0.3333        30
-      macro avg     0.1235    0.3333    0.1802        30
-   weighted avg     0.1235    0.3333    0.1802        30
+      macro avg     0.1149    0.3333    0.1709        30
+   weighted avg     0.1149    0.3333    0.1709        30
 
 Accuracy  : 0.3333
-Precision : 0.1235
+Precision : 0.1149
 Recall    : 0.3333
-F1-Score  : 0.1802
+F1-Score  : 0.1709
 
 CONFUSION MATRIX
                            Educa       Neutr       Overs
          Educational          10           0           0
              Neutral          10           0           0
-     Overstimulating           7           3           0
+     Overstimulating           9           1           0
 
 PER-VIDEO RESULTS
 ------------------------------------------------------------------------------------------
     video_id       true_label             pred      NB       H   Final     path  title
 ------------------------------------------------------------------------------------------
- pCkLAjZACTY      Educational      Educational  0.2049  0.1419  0.1671  success [OK] Fun ABC Song for Kids | Learn Alphabet w
- KGD1TJ_XjbI          Neutral      Educational  0.2643  0.1836  0.2159  success [XX] Korean Cheesy Potato Pancake (4 Ingredie
- xDOd-2wc84U  Overstimulating      Educational  0.3429  0.0807  0.1856  success [XX] TOP FUNNIEST FAKE TIGER PRANK ON GRANDPA
- Mbc29yUtIxs          Neutral      Educational  0.4422  0.1781  0.2837  success [XX] Microwave Meals: Lava Cake!
- 3khdMPRVysc  Overstimulating      Educational  0.2378  0.1793  0.2027  success [XX] Baby Shark Dance Battle | Baby Shark Cha
- -q-jS9ftgew  Overstimulating      Educational  0.2668  0.1331  0.1866  success [XX] Most Oddly Satisfying Slime Videos to wa
- CTByqqMNb1c  Overstimulating          Neutral  0.7919  0.1586  0.4119  success [XX] 60 Minutes Ultimate Cooking Toys Playset
- LZFwXQKIaB4  Overstimulating          Neutral  0.5918  0.2369  0.3789  success [XX] Baby Shark Dance and more | Best Dance A
- pDoUeQ26EDU      Educational      Educational  0.2834  0.1654  0.2126  success [OK] Phonics Song, ABC Song | ABC in the Supe
- 5ajRc-YvLhg      Educational      Educational  0.1993  0.1891  0.1932  success [OK] Best Learning Videos for Toddlers | Lear
- MkU2dlkZIZU          Neutral      Educational  0.0082  0.1455  0.0906  success [XX] The Manic Panic! | Funny Animated Read A
- JV-_9zw62tQ          Neutral      Educational  0.4773  0.1399  0.2749  success [XX] Easy Scrambled Eggs by a 4 year old. #eg
- Dqjf2SPGIg0          Neutral      Educational  0.1813  0.1870  0.1847  success [XX] Silly Crocodile Tries to Be a Monkey and
- ZA9DTkaR6ao      Educational      Educational  0.1391  0.1634  0.1537  success [OK] Letter Sounds Phonics Song YouTube Plus 
- OSWLxj4kTKA          Neutral      Educational  0.1375  0.1746  0.1598  success [XX] The Ugly Duckling | Full Story |  Fairyt
- bIsYZP9k9h4  Overstimulating      Educational  0.3906  0.1234  0.2303  success [XX] Scary mask prank! Her reaction!! 😮😂 #sho
- AZnC2yqGMrU      Educational      Educational  0.4198  0.1952  0.2850  success [OK] Blippi and Layla Go Down the Slide! #Sho
- PmOhUs9IMdk  Overstimulating      Educational  0.3465  0.1662  0.2383  success [XX] Game On with the Louds! 🎮 | The Loud Hou
- xe9N-Cl-kgU  Overstimulating      Educational  0.2448  0.2095  0.2236  success [XX] Jannie&#39;s Magic Slime Creation Experi
- JI5thN4KtgI  Overstimulating          Neutral  0.7914  0.1580  0.4114  success [XX] [🐰toy asmr🐰] Burger Shop Toy Playset ASM
- kN-lfHr3pd0      Educational      Educational  0.0942  0.1670  0.1379  success [OK] Meekah Learns Science and Does Fun Scien
- Yt8GFgxlITs      Educational      Educational  0.2078  0.2354  0.2244  success [OK] Counting 1 to 10 | Number Songs | PINKFO
- LhYtcadR9nw      Educational      Educational  0.0198  0.1657  0.1073  success [OK] Squish the Fish | Yoga for Kids! A Cosmi
- ELbcakxFvfc          Neutral      Educational  0.0448  0.1589  0.1133  success [XX] Hansel and Gretel story for children | B
- pckuS--UlV4          Neutral      Educational  0.0811  0.1466  0.1204  success [XX] The Gingerbread Man | Full Story | Anima
- r25DlDLEGXs  Overstimulating      Educational  0.2822  0.1552  0.2060  success [XX] Satisfying Slime ASMR Videos | Relaxing 
- dZUq8hpKICY          Neutral      Educational  0.2712  0.2117  0.2355  success [XX] Train Choo Choo Song | Find the Animal +
- -9NXxlFnZcU          Neutral      Educational  0.0814  0.1828  0.1422  success [XX] 3 Little Pigs | Bedtime Stories for Kids
- sSRD1ZJEUbY      Educational      Educational  0.2104  0.1312  0.1629  success [OK] Learn Shapes with Color Balls - Colors V
- EbgwPx6mYu4      Educational      Educational  0.2124  0.2752  0.2501  success [OK] Counting 1 to 20 | Number Songs | PINKFO
+ 5EPPBDdhe6o      Educational      Educational  0.1468  0.2209  0.1913  success [OK] The Worm with 4 Nobel Prizes
+ G8nuZu0VDp4      Educational      Educational  0.1658  0.1807  0.1747  success [OK] 5 Minute Stories Book Read-Along 📚 | A B
+ r6cJl89axqY          Neutral      Educational  0.3070  0.1151  0.1919  success [XX] How To Draw A Cute Unicorn
+ g6_iSn3g8Jk  Overstimulating      Educational  0.3230  0.1967  0.2472  success [XX] Mix- TOP3 Baby Shark Songs for KidsㅣBebe
+ fNyorKlm7wk      Educational      Educational  0.2254  0.1498  0.1800  success [OK] Lunar Eclipse for Kids | How to make a l
+ jiEv6VTDt5c      Educational      Educational  0.1796  0.1348  0.1527  success [OK] Learn to Read - 3-Letter Word - Letter S
+ 7aKsPwH1iss          Neutral      Educational  0.4178  0.0732  0.2110  success [XX] beautiful sunset video #shorts #love #na
+ Judk34NMBM0  Overstimulating          Neutral  0.7967  0.1291  0.3961  success [XX] 60 Minutes Ultimate Cooking Toys Playset
+ WFtA4ZJzQpA          Neutral      Educational  0.2767  0.1262  0.1864  success [XX] Adorable 6-Year Old Has Her Own Cooking 
+ fU1KKvbCrRI  Overstimulating      Educational  0.4940  0.1679  0.2983  success [XX] Monkey Banana Dance | Baby Monkey | Danc
+ 8BKkKmxs_L8      Educational      Educational  0.2355  0.1381  0.1771  success [OK] Dora the Explorer - ABC Nursery Rhymes C
+ 9w9GlT4Zyl8          Neutral      Educational  0.2738  0.1653  0.2087  success [XX] Wall&#39;s 3 in 1 Ice Cream 🍦 Perfect Mi
+ cvM0JM9DhkQ  Overstimulating      Educational  0.5093  0.2250  0.3387  success [XX] Learn the Color Brown! 🤠 Cowboy Hats, Co
+ hkz51Td9k5A          Neutral      Educational  0.0045  0.1811  0.1105  success [XX] Read Aloud Kids Book: It's A Firefly Nig
+ Wz--wtGlJtM  Overstimulating      Educational  0.3286  0.2048  0.2543  success [XX] Mike becomes a pilot and saves his frien
+ QsaATI1BoCg  Overstimulating      Educational  0.1354  0.2016  0.1751  success [XX] Diana and Roma Adventure in the Cinema a
+ ozsgl_sLnHQ      Educational      Educational  0.0595  0.2256  0.1592  success [OK] Learn About Emotions and Feelings with M
+ ZY-NF22bKXY          Neutral      Educational  0.2310  0.1827  0.2020  success [XX] Aesthetic Quiet Morning Study Vlog 🌿 | P
+ kopx0X8XTMM      Educational      Educational  0.4611  0.1472  0.2728  success [OK] Stand like a flamingo with Ms. Rachel, n
+ DvpQHdQFJdE          Neutral      Educational  0.3511  0.1531  0.2323  success [XX] Study vlog 📚 ˙✧˖° #study #studymotivatio
+ IoJ1sbZ_IZc      Educational      Educational  0.1799  0.1908  0.1864  success [OK] Peter Rabbit - The Great Pumpkin Theft |
+ wokA49B0Clk          Neutral      Educational  0.4442  0.1892  0.2912  success [XX] Everything I eat in a normal day! #short
+ T_aH__L2YsE      Educational      Educational  0.3775  0.2212  0.2837  success [OK] Construction Trucks, Where Are You? | Ex
+ AlB6ZNqykXU  Overstimulating      Educational  0.1730  0.1497  0.1590  success [XX] I Like To Draw | Colors And Shapes Song 
+ KI2xvN5uAio          Neutral      Educational  0.2847  0.1810  0.2225  success [XX] 6:00AM Stanford University Morning Routi
+ y1Z-O_iGpMg  Overstimulating      Educational  0.2471  0.1845  0.2095  success [XX] IF YOU CHOOSE THE WRONG STAIR, YOU DIE! 
+ d7Gdv5qI6FA      Educational      Educational  0.4614  0.1810  0.2932  success [OK] Say "Mama" with Ms. Rachel 🫶 Ms. Rachel 
+ qaRYVwND3SQ          Neutral      Educational  0.1179  0.1705  0.1495  success [XX] How to Blow Your Nose - Life Skills for 
+ v7cuoaoUTKQ  Overstimulating      Educational  0.5354  0.2227  0.3478  success [XX] Baby Shark Dance | Pinkfong Sing &amp; D
+ jnWBzRBx2t4  Overstimulating      Educational  0.4206  0.2052  0.2914  success [XX] Nostalgia Video Shopkins Food Fair Candy

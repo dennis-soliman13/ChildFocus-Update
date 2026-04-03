@@ -62,42 +62,79 @@ def evaluate_config(results, alpha, block, allow):
 
 
 def run_grid_search(results):
-    """Search over alpha, block threshold, allow threshold."""
+    """Search over alpha, block threshold, allow threshold.
+    
+    Enforces a minimum Overstimulating recall floor before considering
+    any config — prevents degenerate all-Educational solutions from winning.
+    """
     print("\n" + "="*70)
     print("GRID SEARCH — ALPHA × THRESHOLD COMBINATIONS")
     print("="*70)
 
-    alphas  = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    blocks  = [0.18, 0.20, 0.22, 0.25, 0.28, 0.30, 0.32, 0.35, 0.38, 0.40]
-    allows  = [0.08, 0.10, 0.11, 0.13, 0.15, 0.16, 0.17, 0.18]
+    alphas = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    blocks = [0.18, 0.20, 0.22, 0.25, 0.28, 0.30, 0.32, 0.35, 0.38, 0.40]
+    allows = [0.08, 0.10, 0.11, 0.13, 0.15, 0.16, 0.17, 0.18]
 
-    best_f1    = 0
-    best_cfg   = None
+    # Minimum Overstimulating recall — child safety floor.
+    # Any config that misses more than 20% of overstimulating videos is rejected.
+    OVER_RECALL_FLOOR = 0.80
+    OVER_IDX = LABELS.index("Overstimulating")
+
+    best_f1     = 0
+    best_cfg    = None
     top_results = []
+    skipped     = 0
 
     for alpha in alphas:
         for block in blocks:
             for allow in allows:
                 if allow >= block:
                     continue
+
                 f1, acc, y_true, y_pred, _ = evaluate_config(
                     results, alpha, block, allow
                 )
-                top_results.append((f1, acc, alpha, block, allow))
+
+                # ── Safety floor: reject configs with low Overstimulating recall ──
+                _, rec_per_class, _, _ = precision_recall_fscore_support(
+                    y_true, y_pred, labels=LABELS,
+                    average=None, zero_division=0
+                )
+                over_recall = rec_per_class[OVER_IDX]
+                if over_recall < OVER_RECALL_FLOOR:
+                    skipped += 1
+                    continue   # never consider this config regardless of F1
+
+                top_results.append((f1, acc, alpha, block, allow, over_recall))
                 if f1 > best_f1:
                     best_f1  = f1
                     best_cfg = (alpha, block, allow, acc, y_true, y_pred)
 
-    # Show top 10
+    print(f"\n[GRID] Configs evaluated : {len(top_results) + skipped}")
+    print(f"[GRID] Rejected (Over. recall < {OVER_RECALL_FLOOR:.0%}): {skipped}")
+    print(f"[GRID] Qualifying configs: {len(top_results)}")
+
+    if not top_results:
+        print(f"\n[GRID] ✗ No config achieved Overstimulating recall >= {OVER_RECALL_FLOOR:.0%}.")
+        print(f"[GRID]   This means the score distributions don't separate well enough.")
+        print(f"[GRID]   Check that NB scores are real (not 0.500) and ATT is non-zero.")
+        return None
+
+    # Show top 10 qualifying configs
     top_results.sort(key=lambda x: -x[0])
-    print(f"\n{'Alpha':>8} {'Block':>8} {'Allow':>8} {'F1':>10} {'Accuracy':>10}")
-    print("-"*50)
-    for f1, acc, alpha, block, allow in top_results[:10]:
-        marker = " ← BEST" if (alpha, block, allow) == (best_cfg[0], best_cfg[1], best_cfg[2]) else ""
-        print(f"{alpha:>8.1f} {block:>8.3f} {allow:>8.3f} {f1:>10.4f} {acc:>10.4f}{marker}")
+    print(f"\n{'Alpha':>8} {'Block':>8} {'Allow':>8} {'F1':>10} "
+          f"{'Accuracy':>10} {'Over.Rec':>10}")
+    print("-"*60)
+    for f1, acc, alpha, block, allow, over_rec in top_results[:10]:
+        is_best = (
+            best_cfg is not None and
+            (alpha, block, allow) == (best_cfg[0], best_cfg[1], best_cfg[2])
+        )
+        marker = " ← BEST" if is_best else ""
+        print(f"{alpha:>8.1f} {block:>8.3f} {allow:>8.3f} {f1:>10.4f} "
+              f"{acc:>10.4f} {over_rec:>10.4f}{marker}")
 
     return best_cfg
-
 
 def report_best_config(results, best_cfg):
     alpha, block, allow, acc, y_true, y_pred = best_cfg
@@ -232,6 +269,12 @@ def main():
 
     # Then run full grid search
     best_cfg = run_grid_search(results)
+
+    # ✅ SAFETY CHECK (added)
+    if best_cfg is None:
+        print("\n[FINAL] ✗ Grid search found no valid configuration.")
+        print("[FINAL]   Fix NB feature mismatch and ffmpeg, then re-run.")
+        return
 
     # Detailed report of best
     metrics  = report_best_config(results, best_cfg)

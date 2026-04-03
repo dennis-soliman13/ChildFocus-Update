@@ -1,1112 +1,1112 @@
 [
   {
-    "video_id": "pCkLAjZACTY",
-    "title": "Fun ABC Song for Kids | Learn Alphabet with Engli the Monster",
+    "video_id": "5EPPBDdhe6o",
+    "title": "The Worm with 4 Nobel Prizes",
     "true_label": "Educational",
     "pred_label": "Educational",
-    "score_nb": 0.2049,
-    "score_h": 0.1419,
-    "score_final": 0.1671,
-    "nb_confidence": 0.5707,
+    "score_nb": 0.1468,
+    "score_h": 0.2209,
+    "score_final": 0.1913,
+    "nb_confidence": 0.722,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.0395,
-        "csv": 0.1091,
-        "att": 0.1682,
-        "score_h": 0.0747
+        "fcr": 0.125,
+        "csv": 0.5003,
+        "att": 0.2468,
+        "score_h": 0.2053
       },
       {
         "segment_id": "S2",
-        "fcr": 0.0395,
-        "csv": 0.1091,
-        "att": 0.1682,
-        "score_h": 0.0747
+        "fcr": 0.15,
+        "csv": 0.1644,
+        "att": 0.2404,
+        "score_h": 0.1643
       },
       {
         "segment_id": "S3",
-        "fcr": 0.0395,
-        "csv": 0.1091,
-        "att": 0.1682,
-        "score_h": 0.0747
+        "fcr": 0.175,
+        "csv": 0.1751,
+        "att": 0.2332,
+        "score_h": 0.175
       }
     ],
-    "thumbnail_intensity": 0.4108,
+    "thumbnail_intensity": 0.3612,
     "status": "success",
-    "runtime": 10.42
+    "runtime": 13.1
   },
   {
-    "video_id": "KGD1TJ_XjbI",
-    "title": "Korean Cheesy Potato Pancake (4 Ingredients ONLY!)",
+    "video_id": "G8nuZu0VDp4",
+    "title": "5 Minute Stories Book Read-Along \ud83d\udcda | A Baby Sea Turtle's Journey \ud83d\udc22 | @natgeokids",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.1658,
+    "score_h": 0.1807,
+    "score_final": 0.1747,
+    "nb_confidence": 0.7088,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0682,
+        "csv": 0.3901,
+        "att": 0.1791,
+        "score_h": 0.1429
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0455,
+        "csv": 0.0457,
+        "att": 0.1983,
+        "score_h": 0.0868
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0227,
+        "csv": 0.6243,
+        "att": 0.1852,
+        "score_h": 0.1594
+      }
+    ],
+    "thumbnail_intensity": 0.3719,
+    "status": "success",
+    "runtime": 44.5
+  },
+  {
+    "video_id": "r6cJl89axqY",
+    "title": "How To Draw A Cute Unicorn",
     "true_label": "Neutral",
     "pred_label": "Educational",
-    "score_nb": 0.2643,
-    "score_h": 0.1836,
-    "score_final": 0.2159,
-    "nb_confidence": 0.4177,
+    "score_nb": 0.307,
+    "score_h": 0.1151,
+    "score_final": 0.1919,
+    "nb_confidence": 0.5626,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.1625,
-        "csv": 0.1347,
-        "att": 0.2108,
-        "score_h": 0.1327
+        "fcr": 0.075,
+        "csv": 0.0235,
+        "att": 0.1683,
+        "score_h": 0.0878
       },
       {
         "segment_id": "S2",
-        "fcr": 0.175,
-        "csv": 0.106,
-        "att": 0.2178,
-        "score_h": 0.1313
+        "fcr": 0.075,
+        "csv": 0.0894,
+        "att": 0.177,
+        "score_h": 0.1003
       },
       {
         "segment_id": "S3",
-        "fcr": 0.175,
-        "csv": 0.2034,
-        "att": 0.205,
-        "score_h": 0.1531
+        "fcr": 0.075,
+        "csv": 0.093,
+        "att": 0.1705,
+        "score_h": 0.0988
       }
     ],
-    "thumbnail_intensity": 0.3055,
+    "thumbnail_intensity": 0.2479,
     "status": "success",
-    "runtime": 7.14
+    "runtime": 17.88
   },
   {
-    "video_id": "xDOd-2wc84U",
-    "title": "TOP FUNNIEST FAKE TIGER PRANK ON GRANDPA! | SAGOR BHUYAN",
+    "video_id": "g6_iSn3g8Jk",
+    "title": "Mix- TOP3 Baby Shark Songs for Kids\u3163Bebefinn Nursery Rhymes Compilation",
     "true_label": "Overstimulating",
     "pred_label": "Educational",
-    "score_nb": 0.3429,
-    "score_h": 0.0807,
-    "score_final": 0.1856,
-    "nb_confidence": 0.3583,
+    "score_nb": 0.323,
+    "score_h": 0.1967,
+    "score_final": 0.2472,
+    "nb_confidence": 0.4114,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.0,
-        "csv": 0.0087,
-        "att": 0.1872,
-        "score_h": 0.0396
+        "fcr": 0.175,
+        "csv": 0.4396,
+        "att": 0.1208,
+        "score_h": 0.1809
       },
       {
         "segment_id": "S2",
-        "fcr": 0.0125,
-        "csv": 0.0304,
-        "att": 0.1731,
-        "score_h": 0.0466
+        "fcr": 0.2,
+        "csv": 0.0766,
+        "att": 0.1865,
+        "score_h": 0.1574
       },
       {
         "segment_id": "S3",
-        "fcr": 0.0125,
-        "csv": 0.0433,
-        "att": 0.1801,
-        "score_h": 0.0512
+        "fcr": 0.175,
+        "csv": 0.067,
+        "att": 0.1904,
+        "score_h": 0.1459
+      }
+    ],
+    "thumbnail_intensity": 0.3389,
+    "status": "success",
+    "runtime": 25.28
+  },
+  {
+    "video_id": "fNyorKlm7wk",
+    "title": "Lunar Eclipse for Kids | How to make a lunar eclipse | #shorts",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.2254,
+    "score_h": 0.1498,
+    "score_final": 0.18,
+    "nb_confidence": 0.6022,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.075,
+        "csv": 0.12,
+        "att": 0.1541,
+        "score_h": 0.098
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.05,
+        "csv": 0.0968,
+        "att": 0.1322,
+        "score_h": 0.0767
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1,
+        "csv": 0.4176,
+        "att": 0.1226,
+        "score_h": 0.1444
       }
     ],
     "thumbnail_intensity": 0.1988,
     "status": "success",
-    "runtime": 6.62
+    "runtime": 8.15
   },
   {
-    "video_id": "Mbc29yUtIxs",
-    "title": "Microwave Meals: Lava Cake!",
-    "true_label": "Neutral",
-    "pred_label": "Educational",
-    "score_nb": 0.4422,
-    "score_h": 0.1781,
-    "score_final": 0.2837,
-    "nb_confidence": 0.4422,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.1548,
-        "csv": 0.1082,
-        "att": 0.2371,
-        "score_h": 0.1286
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.1548,
-        "csv": 0.0999,
-        "att": 0.2341,
-        "score_h": 0.126
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.1667,
-        "csv": 0.1467,
-        "att": 0.2344,
-        "score_h": 0.1419
-      }
-    ],
-    "thumbnail_intensity": 0.3231,
-    "status": "success",
-    "runtime": 8.02
-  },
-  {
-    "video_id": "3khdMPRVysc",
-    "title": "Baby Shark Dance Battle | Baby Shark Challenge | Baby Shark Dance | Baby Shark O",
-    "true_label": "Overstimulating",
-    "pred_label": "Educational",
-    "score_nb": 0.2378,
-    "score_h": 0.1793,
-    "score_final": 0.2027,
-    "nb_confidence": 0.5321,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.0238,
-        "csv": 0.4306,
-        "att": 0.1902,
-        "score_h": 0.154
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.0238,
-        "csv": 0.0925,
-        "att": 0.177,
-        "score_h": 0.0669
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.0119,
-        "csv": 0.0321,
-        "att": 0.2134,
-        "score_h": 0.0549
-      }
-    ],
-    "thumbnail_intensity": 0.2805,
-    "status": "success",
-    "runtime": 15.39
-  },
-  {
-    "video_id": "-q-jS9ftgew",
-    "title": "Most Oddly Satisfying Slime Videos to watch before sleep",
-    "true_label": "Overstimulating",
-    "pred_label": "Educational",
-    "score_nb": 0.2668,
-    "score_h": 0.1331,
-    "score_final": 0.1866,
-    "nb_confidence": 0.4886,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.0476,
-        "csv": 0.1791,
-        "att": 0.2055,
-        "score_h": 0.1025
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.0595,
-        "csv": 0.1057,
-        "att": 0.2168,
-        "score_h": 0.0906
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.0952,
-        "csv": 0.0803,
-        "att": 0.2072,
-        "score_h": 0.0948
-      }
-    ],
-    "thumbnail_intensity": 0.2556,
-    "status": "success",
-    "runtime": 18.08
-  },
-  {
-    "video_id": "CTByqqMNb1c",
-    "title": "60 Minutes Ultimate Cooking Toys Playset, Satisfying Unboxing Kitchen Set ASMR |",
-    "true_label": "Overstimulating",
-    "pred_label": "Neutral",
-    "score_nb": 0.7919,
-    "score_h": 0.1586,
-    "score_final": 0.4119,
-    "nb_confidence": 0.7919,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.0952,
-        "csv": 0.1009,
-        "att": 0.2124,
-        "score_h": 0.101
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.131,
-        "csv": 0.1091,
-        "att": 0.2069,
-        "score_h": 0.1145
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.0833,
-        "csv": 0.146,
-        "att": 0.2063,
-        "score_h": 0.1069
-      }
-    ],
-    "thumbnail_intensity": 0.3348,
-    "status": "success",
-    "runtime": 151.52
-  },
-  {
-    "video_id": "LZFwXQKIaB4",
-    "title": "Baby Shark Dance and more | Best Dance Along | +Compilation | Pinkfong Songs for",
-    "true_label": "Overstimulating",
-    "pred_label": "Neutral",
-    "score_nb": 0.5918,
-    "score_h": 0.2369,
-    "score_final": 0.3789,
-    "nb_confidence": 0.5918,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.0952,
-        "csv": 0.5489,
-        "att": 0.1603,
-        "score_h": 0.2026
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.0714,
-        "csv": 0.1308,
-        "att": 0.1803,
-        "score_h": 0.0938
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.131,
-        "csv": 0.1609,
-        "att": 0.1611,
-        "score_h": 0.1183
-      }
-    ],
-    "thumbnail_intensity": 0.3739,
-    "status": "success",
-    "runtime": 56.55
-  },
-  {
-    "video_id": "pDoUeQ26EDU",
-    "title": "Phonics Song, ABC Song | ABC in the Supermarket | Nursery Rhymes &amp; Kids Song",
+    "video_id": "jiEv6VTDt5c",
+    "title": "Learn to Read - 3-Letter Word - Letter Sound - Phonics for Kids",
     "true_label": "Educational",
     "pred_label": "Educational",
-    "score_nb": 0.2834,
-    "score_h": 0.1654,
-    "score_final": 0.2126,
-    "nb_confidence": 0.5989,
+    "score_nb": 0.1796,
+    "score_h": 0.1348,
+    "score_final": 0.1527,
+    "nb_confidence": 0.6544,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.1375,
-        "csv": 0.135,
-        "att": 0.2046,
-        "score_h": 0.1228
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.1125,
-        "csv": 0.2105,
-        "att": 0.1652,
-        "score_h": 0.125
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.125,
-        "csv": 0.25,
-        "att": 0.1725,
-        "score_h": 0.1407
-      }
-    ],
-    "thumbnail_intensity": 0.2642,
-    "status": "success",
-    "runtime": 71.94
-  },
-  {
-    "video_id": "5ajRc-YvLhg",
-    "title": "Best Learning Videos for Toddlers | Learning Colors and Shapes for Kids with Woo",
-    "true_label": "Educational",
-    "pred_label": "Educational",
-    "score_nb": 0.1993,
-    "score_h": 0.1891,
-    "score_final": 0.1932,
-    "nb_confidence": 0.73,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.175,
-        "csv": 0.3478,
-        "att": 0.1472,
-        "score_h": 0.1776
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.1125,
-        "csv": 0.1245,
-        "att": 0.1964,
-        "score_h": 0.1098
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.1125,
-        "csv": 0.1368,
-        "att": 0.2031,
-        "score_h": 0.1142
-      }
-    ],
-    "thumbnail_intensity": 0.235,
-    "status": "success",
-    "runtime": 91.68
-  },
-  {
-    "video_id": "MkU2dlkZIZU",
-    "title": "The Manic Panic! | Funny Animated Read Aloud Kids Book | Vooks",
-    "true_label": "Neutral",
-    "pred_label": "Educational",
-    "score_nb": 0.0082,
-    "score_h": 0.1455,
-    "score_final": 0.0906,
-    "nb_confidence": 0.9829,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.05,
-        "csv": 0.3396,
-        "att": 0.1766,
-        "score_h": 0.1377
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.0625,
-        "csv": 0.06,
-        "att": 0.1695,
-        "score_h": 0.0708
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.025,
-        "csv": 0.0229,
-        "att": 0.1842,
-        "score_h": 0.0513
-      }
-    ],
-    "thumbnail_intensity": 0.1768,
-    "status": "success",
-    "runtime": 13.58
-  },
-  {
-    "video_id": "JV-_9zw62tQ",
-    "title": "Easy Scrambled Eggs by a 4 year old. #eggs #breakfast #scrambledeggs #kidfriendl",
-    "true_label": "Neutral",
-    "pred_label": "Educational",
-    "score_nb": 0.4773,
-    "score_h": 0.1399,
-    "score_final": 0.2749,
-    "nb_confidence": 0.4773,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.15,
-        "csv": 0.1112,
-        "att": 0.1894,
-        "score_h": 0.1182
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.15,
-        "csv": 0.1059,
-        "att": 0.1819,
-        "score_h": 0.1154
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.1375,
-        "csv": 0.117,
-        "att": 0.1787,
-        "score_h": 0.1131
-      }
-    ],
-    "thumbnail_intensity": 0.2266,
-    "status": "success",
-    "runtime": 7.4
-  },
-  {
-    "video_id": "Dqjf2SPGIg0",
-    "title": "Silly Crocodile Tries to Be a Monkey and Gets Hurt | Kids Animation",
-    "true_label": "Neutral",
-    "pred_label": "Educational",
-    "score_nb": 0.1813,
-    "score_h": 0.187,
-    "score_final": 0.1847,
-    "nb_confidence": 0.4598,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.125,
-        "csv": 0.0673,
-        "att": 0.2076,
-        "score_h": 0.1021
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.05,
-        "csv": 0.0721,
-        "att": 0.204,
-        "score_h": 0.0763
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.15,
-        "csv": 0.2979,
-        "att": 0.1984,
-        "score_h": 0.1667
-      }
-    ],
-    "thumbnail_intensity": 0.2681,
-    "status": "success",
-    "runtime": 18.21
-  },
-  {
-    "video_id": "ZA9DTkaR6ao",
-    "title": "Letter Sounds Phonics Song YouTube Plus More Learning Songs for Kids",
-    "true_label": "Educational",
-    "pred_label": "Educational",
-    "score_nb": 0.1391,
-    "score_h": 0.1634,
-    "score_final": 0.1537,
-    "nb_confidence": 0.6873,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.0357,
-        "csv": 0.1844,
-        "att": 0.1769,
-        "score_h": 0.094
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.0476,
-        "csv": 0.2289,
-        "att": 0.16,
-        "score_h": 0.1059
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.0357,
-        "csv": 0.1564,
-        "att": 0.1603,
-        "score_h": 0.0837
-      }
-    ],
-    "thumbnail_intensity": 0.3936,
-    "status": "success",
-    "runtime": 68.23
-  },
-  {
-    "video_id": "OSWLxj4kTKA",
-    "title": "The Ugly Duckling | Full Story |  Fairytale | Bedtime Stories For Kids | 4K UHD",
-    "true_label": "Neutral",
-    "pred_label": "Educational",
-    "score_nb": 0.1375,
-    "score_h": 0.1746,
-    "score_final": 0.1598,
-    "nb_confidence": 0.78,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.1375,
-        "csv": 0.2272,
-        "att": 0.1841,
-        "score_h": 0.1417
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.125,
-        "csv": 0.0801,
-        "att": 0.1946,
-        "score_h": 0.1027
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.05,
-        "csv": 0.3452,
-        "att": 0.227,
-        "score_h": 0.1492
-      }
-    ],
-    "thumbnail_intensity": 0.2761,
-    "status": "success",
-    "runtime": 21.76
-  },
-  {
-    "video_id": "bIsYZP9k9h4",
-    "title": "Scary mask prank! Her reaction!! \ud83d\ude2e\ud83d\ude02 #shorts",
-    "true_label": "Overstimulating",
-    "pred_label": "Educational",
-    "score_nb": 0.3906,
-    "score_h": 0.1234,
-    "score_final": 0.2303,
-    "nb_confidence": 0.4225,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.1667,
-        "csv": 0.0771,
-        "att": 0.1461,
-        "score_h": 0.1068
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.1667,
-        "csv": 0.0771,
-        "att": 0.1461,
-        "score_h": 0.1068
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.1667,
-        "csv": 0.0771,
-        "att": 0.1461,
-        "score_h": 0.1068
-      }
-    ],
-    "thumbnail_intensity": 0.19,
-    "status": "success",
-    "runtime": 8.18
-  },
-  {
-    "video_id": "AZnC2yqGMrU",
-    "title": "Blippi and Layla Go Down the Slide! #Shorts",
-    "true_label": "Educational",
-    "pred_label": "Educational",
-    "score_nb": 0.4198,
-    "score_h": 0.1952,
-    "score_final": 0.285,
-    "nb_confidence": 0.4562,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.15,
-        "csv": 0.2064,
-        "att": 0.2161,
-        "score_h": 0.1473
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.15,
-        "csv": 0.2064,
-        "att": 0.2161,
-        "score_h": 0.1473
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.15,
-        "csv": 0.2064,
-        "att": 0.2161,
-        "score_h": 0.1473
-      }
-    ],
-    "thumbnail_intensity": 0.3869,
-    "status": "success",
-    "runtime": 6.26
-  },
-  {
-    "video_id": "PmOhUs9IMdk",
-    "title": "Game On with the Louds! \ud83c\udfae | The Loud House",
-    "true_label": "Overstimulating",
-    "pred_label": "Educational",
-    "score_nb": 0.3465,
-    "score_h": 0.1662,
-    "score_final": 0.2383,
-    "nb_confidence": 0.4309,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.0476,
-        "csv": 0.0913,
-        "att": 0.2038,
-        "score_h": 0.0802
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.0952,
-        "csv": 0.2801,
-        "att": 0.2169,
-        "score_h": 0.1467
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.0357,
-        "csv": 0.0729,
-        "att": 0.2121,
-        "score_h": 0.0731
-      }
-    ],
-    "thumbnail_intensity": 0.2443,
-    "status": "success",
-    "runtime": 56.85
-  },
-  {
-    "video_id": "xe9N-Cl-kgU",
-    "title": "Jannie&#39;s Magic Slime Creation Experiment!",
-    "true_label": "Overstimulating",
-    "pred_label": "Educational",
-    "score_nb": 0.2448,
-    "score_h": 0.2095,
-    "score_final": 0.2236,
-    "nb_confidence": 0.6272,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.2,
-        "csv": 0.1729,
-        "att": 0.1803,
-        "score_h": 0.1493
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.15,
-        "csv": 0.2691,
-        "att": 0.174,
-        "score_h": 0.1546
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.2,
-        "csv": 0.1428,
-        "att": 0.1656,
-        "score_h": 0.1388
-      }
-    ],
-    "thumbnail_intensity": 0.4292,
-    "status": "success",
-    "runtime": 18.29
-  },
-  {
-    "video_id": "JI5thN4KtgI",
-    "title": "[\ud83d\udc30toy asmr\ud83d\udc30] Burger Shop Toy Playset ASMR Satisfying with Unboxing No Talking | ",
-    "true_label": "Overstimulating",
-    "pred_label": "Neutral",
-    "score_nb": 0.7914,
-    "score_h": 0.158,
-    "score_final": 0.4114,
-    "nb_confidence": 0.7914,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.1375,
-        "csv": 0.1537,
-        "att": 0.1773,
-        "score_h": 0.122
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.125,
-        "csv": 0.1463,
-        "att": 0.1975,
-        "score_h": 0.1198
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.1375,
-        "csv": 0.1426,
-        "att": 0.1631,
-        "score_h": 0.1164
-      }
-    ],
-    "thumbnail_intensity": 0.3018,
-    "status": "success",
-    "runtime": 14.65
-  },
-  {
-    "video_id": "kN-lfHr3pd0",
-    "title": "Meekah Learns Science and Does Fun Science Experiments! | 1 HOUR OF MEEKAH! | Bl",
-    "true_label": "Educational",
-    "pred_label": "Educational",
-    "score_nb": 0.0942,
-    "score_h": 0.167,
-    "score_final": 0.1379,
-    "nb_confidence": 0.8442,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.0875,
-        "csv": 0.2692,
-        "att": 0.2127,
-        "score_h": 0.1405
+        "fcr": 0.0455,
+        "csv": 0.2919,
+        "att": 0.1893,
+        "score_h": 0.121
       },
       {
         "segment_id": "S2",
         "fcr": 0.0,
-        "csv": 0.0232,
-        "att": 0.218,
-        "score_h": 0.0494
+        "csv": 0.0094,
+        "att": 0.1864,
+        "score_h": 0.0573
       },
       {
         "segment_id": "S3",
-        "fcr": 0.05,
-        "csv": 0.1074,
-        "att": 0.2223,
-        "score_h": 0.0888
+        "fcr": 0.0455,
+        "csv": 0.1372,
+        "att": 0.1981,
+        "score_h": 0.1005
       }
     ],
-    "thumbnail_intensity": 0.2729,
+    "thumbnail_intensity": 0.2585,
     "status": "success",
-    "runtime": 140.01
+    "runtime": 27.4
   },
   {
-    "video_id": "Yt8GFgxlITs",
-    "title": "Counting 1 to 10 | Number Songs | PINKFONG Songs for Children",
-    "true_label": "Educational",
+    "video_id": "7aKsPwH1iss",
+    "title": "beautiful sunset video #shorts #love #nature #sunset #viral#youtubeshorts #viral",
+    "true_label": "Neutral",
     "pred_label": "Educational",
-    "score_nb": 0.2078,
-    "score_h": 0.2354,
-    "score_final": 0.2244,
-    "nb_confidence": 0.611,
+    "score_nb": 0.4178,
+    "score_h": 0.0732,
+    "score_final": 0.211,
+    "nb_confidence": 0.4178,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.1375,
-        "csv": 0.5397,
-        "att": 0.1525,
-        "score_h": 0.2135
+        "fcr": 0.0,
+        "csv": 0.0122,
+        "att": 0.0901,
+        "score_h": 0.0289
       },
       {
         "segment_id": "S2",
-        "fcr": 0.125,
-        "csv": 0.1929,
-        "att": 0.1889,
-        "score_h": 0.1298
+        "fcr": 0.0,
+        "csv": 0.0122,
+        "att": 0.0901,
+        "score_h": 0.0289
       },
       {
         "segment_id": "S3",
-        "fcr": 0.0375,
-        "csv": 0.4062,
-        "att": 0.1715,
+        "fcr": 0.0,
+        "csv": 0.0122,
+        "att": 0.0901,
+        "score_h": 0.0289
+      }
+    ],
+    "thumbnail_intensity": 0.472,
+    "status": "success",
+    "runtime": 5.01
+  },
+  {
+    "video_id": "Judk34NMBM0",
+    "title": "60 Minutes Ultimate Cooking Toys Playset, Satisfying Unboxing Flamingo Kitchen S",
+    "true_label": "Overstimulating",
+    "pred_label": "Neutral",
+    "score_nb": 0.7967,
+    "score_h": 0.1291,
+    "score_final": 0.3961,
+    "nb_confidence": 0.7967,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0682,
+        "csv": 0.0463,
+        "att": 0.1487,
+        "score_h": 0.0822
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0682,
+        "csv": 0.0765,
+        "att": 0.184,
+        "score_h": 0.0974
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0909,
+        "csv": 0.095,
+        "att": 0.1611,
+        "score_h": 0.1035
+      }
+    ],
+    "thumbnail_intensity": 0.3594,
+    "status": "success",
+    "runtime": 175.64
+  },
+  {
+    "video_id": "WFtA4ZJzQpA",
+    "title": "Adorable 6-Year Old Has Her Own Cooking Show - Chef Paisley Makes Pancakes",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.2767,
+    "score_h": 0.1262,
+    "score_final": 0.1864,
+    "nb_confidence": 0.485,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0682,
+        "csv": 0.0907,
+        "att": 0.1714,
+        "score_h": 0.0957
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0909,
+        "csv": 0.0834,
+        "att": 0.1819,
+        "score_h": 0.108
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1136,
+        "csv": 0.105,
+        "att": 0.1798,
+        "score_h": 0.1208
+      }
+    ],
+    "thumbnail_intensity": 0.1747,
+    "status": "success",
+    "runtime": 46.37
+  },
+  {
+    "video_id": "fU1KKvbCrRI",
+    "title": "Monkey Banana Dance | Baby Monkey | Dance Along Song | Pinkfong Kids Songs",
+    "true_label": "Overstimulating",
+    "pred_label": "Educational",
+    "score_nb": 0.494,
+    "score_h": 0.1679,
+    "score_final": 0.2983,
+    "nb_confidence": 0.494,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.025,
+        "csv": 0.05,
+        "att": 0.1739,
+        "score_h": 0.0709
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.05,
+        "csv": 0.0366,
+        "att": 0.2138,
+        "score_h": 0.0921
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.075,
+        "csv": 0.3253,
+        "att": 0.2016,
+        "score_h": 0.143
+      }
+    ],
+    "thumbnail_intensity": 0.3918,
+    "status": "success",
+    "runtime": 23.26
+  },
+  {
+    "video_id": "8BKkKmxs_L8",
+    "title": "Dora the Explorer - ABC Nursery Rhymes COLLECT |  Dora Alphabet Forest Adventure",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.2355,
+    "score_h": 0.1381,
+    "score_final": 0.1771,
+    "nb_confidence": 0.4725,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0682,
+        "csv": 0.097,
+        "att": 0.2106,
+        "score_h": 0.1084
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0455,
+        "csv": 0.1028,
+        "att": 0.2556,
+        "score_h": 0.1126
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0,
+        "csv": 0.0537,
+        "att": 0.264,
+        "score_h": 0.0873
+      }
+    ],
+    "thumbnail_intensity": 0.3675,
+    "status": "success",
+    "runtime": 25.09
+  },
+  {
+    "video_id": "9w9GlT4Zyl8",
+    "title": "Wall&#39;s 3 in 1 Ice Cream \ud83c\udf66 Perfect Mini Summer Dessert by Miniature Cooking",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.2738,
+    "score_h": 0.1653,
+    "score_final": 0.2087,
+    "nb_confidence": 0.5055,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1591,
+        "csv": 0.2031,
+        "att": 0.1852,
+        "score_h": 0.1576
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1591,
+        "csv": 0.0443,
+        "att": 0.1623,
+        "score_h": 0.1269
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1364,
+        "csv": 0.1352,
+        "att": 0.1734,
+        "score_h": 0.1337
+      }
+    ],
+    "thumbnail_intensity": 0.2342,
+    "status": "success",
+    "runtime": 51.48
+  },
+  {
+    "video_id": "cvM0JM9DhkQ",
+    "title": "Learn the Color Brown! \ud83e\udd20 Cowboy Hats, Coconuts & Shoes | ChuChu TV Colors Song f",
+    "true_label": "Overstimulating",
+    "pred_label": "Educational",
+    "score_nb": 0.5093,
+    "score_h": 0.225,
+    "score_final": 0.3387,
+    "nb_confidence": 0.5093,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.15,
+        "csv": 0.5825,
+        "att": 0.1945,
+        "score_h": 0.2132
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.2,
+        "csv": 0.1511,
+        "att": 0.1663,
+        "score_h": 0.1626
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.175,
+        "csv": 0.1295,
+        "att": 0.1693,
         "score_h": 0.149
       }
     ],
-    "thumbnail_intensity": 0.3231,
+    "thumbnail_intensity": 0.3315,
     "status": "success",
-    "runtime": 11.47
+    "runtime": 17.75
   },
   {
-    "video_id": "LhYtcadR9nw",
-    "title": "Squish the Fish | Yoga for Kids! A Cosmic Kids Yoga Adventure",
-    "true_label": "Educational",
-    "pred_label": "Educational",
-    "score_nb": 0.0198,
-    "score_h": 0.1657,
-    "score_final": 0.1073,
-    "nb_confidence": 0.9611,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.0375,
-        "csv": 0.2607,
-        "att": 0.2357,
-        "score_h": 0.1254
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.0,
-        "csv": 0.0041,
-        "att": 0.2341,
-        "score_h": 0.0478
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.0,
-        "csv": 0.0021,
-        "att": 0.2869,
-        "score_h": 0.0579
-      }
-    ],
-    "thumbnail_intensity": 0.3267,
-    "status": "success",
-    "runtime": 44.36
-  },
-  {
-    "video_id": "ELbcakxFvfc",
-    "title": "Hansel and Gretel story for children | Bedtime Stories and Fairy Tales for Kids",
+    "video_id": "hkz51Td9k5A",
+    "title": "Read Aloud Kids Book: It's A Firefly Night! | Vooks Narrated Storybooks",
     "true_label": "Neutral",
     "pred_label": "Educational",
-    "score_nb": 0.0448,
-    "score_h": 0.1589,
-    "score_final": 0.1133,
-    "nb_confidence": 0.9036,
+    "score_nb": 0.0045,
+    "score_h": 0.1811,
+    "score_final": 0.1105,
+    "nb_confidence": 0.9911,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.05,
-        "csv": 0.0837,
-        "att": 0.2133,
-        "score_h": 0.0811
+        "fcr": 0.075,
+        "csv": 0.1773,
+        "att": 0.1434,
+        "score_h": 0.1034
       },
       {
         "segment_id": "S2",
-        "fcr": 0.0875,
-        "csv": 0.1877,
-        "att": 0.1886,
-        "score_h": 0.1153
+        "fcr": 0.075,
+        "csv": 0.2543,
+        "att": 0.18,
+        "score_h": 0.1259
       },
       {
         "segment_id": "S3",
-        "fcr": 0.0375,
-        "csv": 0.2589,
-        "att": 0.1773,
-        "score_h": 0.1133
+        "fcr": 0.175,
+        "csv": 0.1836,
+        "att": 0.1713,
+        "score_h": 0.1577
       }
     ],
-    "thumbnail_intensity": 0.3334,
+    "thumbnail_intensity": 0.3916,
     "status": "success",
-    "runtime": 29.13
+    "runtime": 24.48
   },
   {
-    "video_id": "pckuS--UlV4",
-    "title": "The Gingerbread Man | Full Story | Animated Fairy Tales For Children | 4K UHD",
-    "true_label": "Neutral",
-    "pred_label": "Educational",
-    "score_nb": 0.0811,
-    "score_h": 0.1466,
-    "score_final": 0.1204,
-    "nb_confidence": 0.8831,
-    "sample_path": "success",
-    "segments": [
-      {
-        "segment_id": "S1",
-        "fcr": 0.0714,
-        "csv": 0.2028,
-        "att": 0.1379,
-        "score_h": 0.1033
-      },
-      {
-        "segment_id": "S2",
-        "fcr": 0.0595,
-        "csv": 0.1202,
-        "att": 0.2102,
-        "score_h": 0.0929
-      },
-      {
-        "segment_id": "S3",
-        "fcr": 0.0952,
-        "csv": 0.0496,
-        "att": 0.1973,
-        "score_h": 0.0852
-      }
-    ],
-    "thumbnail_intensity": 0.3198,
-    "status": "success",
-    "runtime": 16.75
-  },
-  {
-    "video_id": "r25DlDLEGXs",
-    "title": "Satisfying Slime ASMR Videos | Relaxing Slime No Talking 3822",
+    "video_id": "Wz--wtGlJtM",
+    "title": "Mike becomes a pilot and saves his friends   best stories for kids",
     "true_label": "Overstimulating",
     "pred_label": "Educational",
-    "score_nb": 0.2822,
-    "score_h": 0.1552,
-    "score_final": 0.206,
-    "nb_confidence": 0.3889,
+    "score_nb": 0.3286,
+    "score_h": 0.2048,
+    "score_final": 0.2543,
+    "nb_confidence": 0.3929,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.05,
-        "csv": 0.1306,
-        "att": 0.243,
-        "score_h": 0.0988
+        "fcr": 0.2273,
+        "csv": 0.1971,
+        "att": 0.1544,
+        "score_h": 0.1782
       },
       {
         "segment_id": "S2",
-        "fcr": 0.0,
-        "csv": 0.0639,
-        "att": 0.192,
-        "score_h": 0.0544
+        "fcr": 0.2273,
+        "csv": 0.2729,
+        "att": 0.1633,
+        "score_h": 0.1922
       },
       {
         "segment_id": "S3",
-        "fcr": 0.15,
-        "csv": 0.0528,
-        "att": 0.2395,
-        "score_h": 0.1136
+        "fcr": 0.2273,
+        "csv": 0.1881,
+        "att": 0.1773,
+        "score_h": 0.1837
       }
     ],
-    "thumbnail_intensity": 0.3216,
+    "thumbnail_intensity": 0.3186,
     "status": "success",
-    "runtime": 35.75
+    "runtime": 92.58
   },
   {
-    "video_id": "dZUq8hpKICY",
-    "title": "Train Choo Choo Song | Find the Animal + More Lalafun Nursery Rhymes &amp; Kids ",
-    "true_label": "Neutral",
+    "video_id": "QsaATI1BoCg",
+    "title": "Diana and Roma Adventure in the Cinema and other Funniest videos for kids",
+    "true_label": "Overstimulating",
     "pred_label": "Educational",
-    "score_nb": 0.2712,
-    "score_h": 0.2117,
-    "score_final": 0.2355,
-    "nb_confidence": 0.4326,
+    "score_nb": 0.1354,
+    "score_h": 0.2016,
+    "score_final": 0.1751,
+    "nb_confidence": 0.6608,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.1625,
-        "csv": 0.3488,
-        "att": 0.1818,
-        "score_h": 0.1804
+        "fcr": 0.2273,
+        "csv": 0.18,
+        "att": 0.1615,
+        "score_h": 0.1777
       },
       {
         "segment_id": "S2",
-        "fcr": 0.1625,
-        "csv": 0.1435,
-        "att": 0.1846,
-        "score_h": 0.1297
+        "fcr": 0.2273,
+        "csv": 0.1706,
+        "att": 0.158,
+        "score_h": 0.1753
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2273,
+        "csv": 0.1292,
+        "att": 0.1582,
+        "score_h": 0.1691
+      }
+    ],
+    "thumbnail_intensity": 0.4172,
+    "status": "success",
+    "runtime": 68.04
+  },
+  {
+    "video_id": "ozsgl_sLnHQ",
+    "title": "Learn About Emotions and Feelings with Ms Rachel | Kids Videos | Preschool Learn",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.0595,
+    "score_h": 0.2256,
+    "score_final": 0.1592,
+    "nb_confidence": 0.8832,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1818,
+        "csv": 0.3859,
+        "att": 0.2119,
+        "score_h": 0.2033
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.2273,
+        "csv": 0.3439,
+        "att": 0.1686,
+        "score_h": 0.2045
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1364,
+        "csv": 0.1048,
+        "att": 0.1602,
+        "score_h": 0.1252
+      }
+    ],
+    "thumbnail_intensity": 0.4154,
+    "status": "success",
+    "runtime": 76.38
+  },
+  {
+    "video_id": "ZY-NF22bKXY",
+    "title": "Aesthetic Quiet Morning Study Vlog \ud83c\udf3f | Productive & Peaceful \u2018Study With Me",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.231,
+    "score_h": 0.1827,
+    "score_final": 0.202,
+    "nb_confidence": 0.496,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2143,
+        "csv": 0.2051,
+        "att": 0.1533,
+        "score_h": 0.1732
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.2143,
+        "csv": 0.2051,
+        "att": 0.1533,
+        "score_h": 0.1732
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2143,
+        "csv": 0.2051,
+        "att": 0.1533,
+        "score_h": 0.1732
+      }
+    ],
+    "thumbnail_intensity": 0.2685,
+    "status": "success",
+    "runtime": 9.03
+  },
+  {
+    "video_id": "kopx0X8XTMM",
+    "title": "Stand like a flamingo with Ms. Rachel, now playing on Netflix! \ud83e\udda9",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.4611,
+    "score_h": 0.1472,
+    "score_final": 0.2728,
+    "nb_confidence": 0.4611,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1,
+        "csv": 0.0948,
+        "att": 0.1783,
+        "score_h": 0.1127
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1,
+        "csv": 0.057,
+        "att": 0.1802,
+        "score_h": 0.1076
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1,
+        "csv": 0.1446,
+        "att": 0.1785,
+        "score_h": 0.1202
+      }
+    ],
+    "thumbnail_intensity": 0.3897,
+    "status": "success",
+    "runtime": 11.83
+  },
+  {
+    "video_id": "DvpQHdQFJdE",
+    "title": "Study vlog \ud83d\udcda \u02d9\u2727\u02d6\u00b0 #study #studymotivation #shorts #short #shortvideo #shortsfeed",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.3511,
+    "score_h": 0.1531,
+    "score_final": 0.2323,
+    "nb_confidence": 0.391,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2083,
+        "csv": 0.045,
+        "att": 0.1869,
+        "score_h": 0.1566
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.2083,
+        "csv": 0.045,
+        "att": 0.1869,
+        "score_h": 0.1566
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2083,
+        "csv": 0.045,
+        "att": 0.1869,
+        "score_h": 0.1566
+      }
+    ],
+    "thumbnail_intensity": 0.1219,
+    "status": "success",
+    "runtime": 3.25
+  },
+  {
+    "video_id": "IoJ1sbZ_IZc",
+    "title": "Peter Rabbit - The Great Pumpkin Theft | Cartoons for Kids",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.1799,
+    "score_h": 0.1908,
+    "score_final": 0.1864,
+    "nb_confidence": 0.7096,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2,
+        "csv": 0.2062,
+        "att": 0.1797,
+        "score_h": 0.1748
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.15,
+        "csv": 0.132,
+        "att": 0.1701,
+        "score_h": 0.1383
       },
       {
         "segment_id": "S3",
         "fcr": 0.125,
-        "csv": 0.1645,
-        "att": 0.187,
-        "score_h": 0.1223
+        "csv": 0.0876,
+        "att": 0.1824,
+        "score_h": 0.1241
       }
     ],
-    "thumbnail_intensity": 0.3367,
+    "thumbnail_intensity": 0.335,
     "status": "success",
-    "runtime": 102.53
+    "runtime": 92.86
   },
   {
-    "video_id": "-9NXxlFnZcU",
-    "title": "3 Little Pigs | Bedtime Stories for Kids in English | Storytime",
+    "video_id": "wokA49B0Clk",
+    "title": "Everything I eat in a normal day! #shorts",
     "true_label": "Neutral",
     "pred_label": "Educational",
-    "score_nb": 0.0814,
-    "score_h": 0.1828,
-    "score_final": 0.1422,
-    "nb_confidence": 0.8627,
+    "score_nb": 0.4442,
+    "score_h": 0.1892,
+    "score_final": 0.2912,
+    "nb_confidence": 0.4442,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.075,
-        "csv": 0.2117,
-        "att": 0.1717,
-        "score_h": 0.1135
+        "fcr": 0.2,
+        "csv": 0.1763,
+        "att": 0.1434,
+        "score_h": 0.1595
       },
       {
         "segment_id": "S2",
-        "fcr": 0.075,
-        "csv": 0.1334,
-        "att": 0.212,
-        "score_h": 0.102
+        "fcr": 0.225,
+        "csv": 0.0606,
+        "att": 0.1167,
+        "score_h": 0.1454
       },
       {
         "segment_id": "S3",
-        "fcr": 0.1,
-        "csv": 0.2026,
-        "att": 0.2117,
-        "score_h": 0.128
+        "fcr": 0.225,
+        "csv": 0.0718,
+        "att": 0.1373,
+        "score_h": 0.1532
       }
     ],
-    "thumbnail_intensity": 0.402,
+    "thumbnail_intensity": 0.456,
     "status": "success",
-    "runtime": 65.22
+    "runtime": 15.13
   },
   {
-    "video_id": "sSRD1ZJEUbY",
-    "title": "Learn Shapes with Color Balls - Colors Videos Collection for Children",
+    "video_id": "T_aH__L2YsE",
+    "title": "Construction Trucks, Where Are You? | Excavator, Crane Truck | Nursery Rhyme &am",
     "true_label": "Educational",
     "pred_label": "Educational",
-    "score_nb": 0.2104,
-    "score_h": 0.1312,
-    "score_final": 0.1629,
-    "nb_confidence": 0.6305,
+    "score_nb": 0.3775,
+    "score_h": 0.2212,
+    "score_final": 0.2837,
+    "nb_confidence": 0.4904,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.075,
-        "csv": 0.213,
-        "att": 0.1767,
-        "score_h": 0.1148
+        "fcr": 0.225,
+        "csv": 0.2374,
+        "att": 0.2257,
+        "score_h": 0.2046
       },
       {
         "segment_id": "S2",
-        "fcr": 0.05,
-        "csv": 0.2338,
-        "att": 0.1929,
-        "score_h": 0.1145
+        "fcr": 0.225,
+        "csv": 0.1984,
+        "att": 0.2402,
+        "score_h": 0.2031
       },
       {
         "segment_id": "S3",
-        "fcr": 0.025,
-        "csv": 0.1783,
-        "att": 0.1879,
-        "score_h": 0.0909
+        "fcr": 0.225,
+        "csv": 0.2043,
+        "att": 0.2283,
+        "score_h": 0.2004
       }
     ],
-    "thumbnail_intensity": 0.197,
+    "thumbnail_intensity": 0.3707,
     "status": "success",
-    "runtime": 31.63
+    "runtime": 62.23
   },
   {
-    "video_id": "EbgwPx6mYu4",
-    "title": "Counting 1 to 20 | Number Songs | PINKFONG Songs for Children",
-    "true_label": "Educational",
+    "video_id": "AlB6ZNqykXU",
+    "title": "I Like To Draw | Colors And Shapes Song | Super Simple Songs",
+    "true_label": "Overstimulating",
     "pred_label": "Educational",
-    "score_nb": 0.2124,
-    "score_h": 0.2752,
-    "score_final": 0.2501,
-    "nb_confidence": 0.5992,
+    "score_nb": 0.173,
+    "score_h": 0.1497,
+    "score_final": 0.159,
+    "nb_confidence": 0.5641,
     "sample_path": "success",
     "segments": [
       {
         "segment_id": "S1",
-        "fcr": 0.0625,
-        "csv": 0.7693,
-        "att": 0.1529,
-        "score_h": 0.2448
+        "fcr": 0.0,
+        "csv": 0.0391,
+        "att": 0.1805,
+        "score_h": 0.06
       },
       {
         "segment_id": "S2",
         "fcr": 0.075,
-        "csv": 0.2721,
-        "att": 0.1355,
-        "score_h": 0.1214
+        "csv": 0.1406,
+        "att": 0.1781,
+        "score_h": 0.1083
       },
       {
         "segment_id": "S3",
-        "fcr": 0.1,
-        "csv": 0.3923,
-        "att": 0.1375,
-        "score_h": 0.1606
+        "fcr": 0.15,
+        "csv": 0.1107,
+        "att": 0.1843,
+        "score_h": 0.1394
       }
     ],
-    "thumbnail_intensity": 0.3969,
+    "thumbnail_intensity": 0.2419,
     "status": "success",
-    "runtime": 8.37
+    "runtime": 4.37
+  },
+  {
+    "video_id": "KI2xvN5uAio",
+    "title": "6:00AM Stanford University Morning Routine \ud83d\udcab #college #vlog #studywithme #produc",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.2847,
+    "score_h": 0.181,
+    "score_final": 0.2225,
+    "nb_confidence": 0.3679,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2188,
+        "csv": 0.0835,
+        "att": 0.2041,
+        "score_h": 0.1722
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.2188,
+        "csv": 0.0835,
+        "att": 0.2041,
+        "score_h": 0.1722
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2188,
+        "csv": 0.0835,
+        "att": 0.2041,
+        "score_h": 0.1722
+      }
+    ],
+    "thumbnail_intensity": 0.2602,
+    "status": "success",
+    "runtime": 3.06
+  },
+  {
+    "video_id": "y1Z-O_iGpMg",
+    "title": "IF YOU CHOOSE THE WRONG STAIR, YOU DIE! - Minecraft",
+    "true_label": "Overstimulating",
+    "pred_label": "Educational",
+    "score_nb": 0.2471,
+    "score_h": 0.1845,
+    "score_final": 0.2095,
+    "nb_confidence": 0.4868,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2,
+        "csv": 0.0213,
+        "att": 0.1853,
+        "score_h": 0.1488
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.175,
+        "csv": 0.035,
+        "att": 0.2049,
+        "score_h": 0.1455
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.175,
+        "csv": 0.1311,
+        "att": 0.2192,
+        "score_h": 0.1642
+      }
+    ],
+    "thumbnail_intensity": 0.3671,
+    "status": "success",
+    "runtime": 16.91
+  },
+  {
+    "video_id": "d7Gdv5qI6FA",
+    "title": "Say \"Mama\" with Ms. Rachel \ud83e\udef6 Ms. Rachel is now playing on Netflix!",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.4614,
+    "score_h": 0.181,
+    "score_final": 0.2932,
+    "nb_confidence": 0.4614,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2273,
+        "csv": 0.01,
+        "att": 0.1696,
+        "score_h": 0.1547
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1818,
+        "csv": 0.0136,
+        "att": 0.1697,
+        "score_h": 0.1348
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2045,
+        "csv": 0.3016,
+        "att": 0.1493,
+        "score_h": 0.1821
+      }
+    ],
+    "thumbnail_intensity": 0.1708,
+    "status": "success",
+    "runtime": 4.53
+  },
+  {
+    "video_id": "qaRYVwND3SQ",
+    "title": "How to Blow Your Nose - Life Skills for Kindergarten, First, and Second Grade!",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.1179,
+    "score_h": 0.1705,
+    "score_final": 0.1495,
+    "nb_confidence": 0.8148,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0,
+        "csv": 0.0055,
+        "att": 0.2257,
+        "score_h": 0.0685
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.125,
+        "csv": 0.4122,
+        "att": 0.1727,
+        "score_h": 0.1699
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.075,
+        "csv": 0.3924,
+        "att": 0.1806,
+        "score_h": 0.1468
+      }
+    ],
+    "thumbnail_intensity": 0.1764,
+    "status": "success",
+    "runtime": 5.05
+  },
+  {
+    "video_id": "v7cuoaoUTKQ",
+    "title": "Baby Shark Dance | Pinkfong Sing &amp; Dance | Animal Songs | Pinkfong Songs For",
+    "true_label": "Overstimulating",
+    "pred_label": "Educational",
+    "score_nb": 0.5354,
+    "score_h": 0.2227,
+    "score_final": 0.3478,
+    "nb_confidence": 0.5354,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.225,
+        "csv": 0.2716,
+        "att": 0.1937,
+        "score_h": 0.2001
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.225,
+        "csv": 0.2493,
+        "att": 0.1912,
+        "score_h": 0.196
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.225,
+        "csv": 0.2067,
+        "att": 0.1727,
+        "score_h": 0.1841
+      }
+    ],
+    "thumbnail_intensity": 0.4262,
+    "status": "success",
+    "runtime": 12.92
+  },
+  {
+    "video_id": "jnWBzRBx2t4",
+    "title": "Nostalgia Video Shopkins Food Fair Candy Jar Blind Bag Box Unboxing Season 1 , 2",
+    "true_label": "Overstimulating",
+    "pred_label": "Educational",
+    "score_nb": 0.4206,
+    "score_h": 0.2052,
+    "score_final": 0.2914,
+    "nb_confidence": 0.4206,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2045,
+        "csv": 0.0795,
+        "att": 0.2473,
+        "score_h": 0.1781
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.2273,
+        "csv": 0.1062,
+        "att": 0.2464,
+        "score_h": 0.1921
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2273,
+        "csv": 0.0842,
+        "att": 0.2406,
+        "score_h": 0.1871
+      }
+    ],
+    "thumbnail_intensity": 0.3229,
+    "status": "success",
+    "runtime": 11.83
   }
 ]
