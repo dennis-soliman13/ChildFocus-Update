@@ -31,6 +31,10 @@ Performance updates (empirically validated):
      avoid scanning YouTube pre-roll ads which inflate FCR and ATT readings
   9. FRAME_SAMPLE_RATE 1 → 0.5 — 1 frame per 2 seconds instead of 1fps,
      halves frame extraction time while still capturing pacing changes accurately
+ 10. Age-restriction detection tightened (2025) — checks "sign in to confirm",
+     "confirm your age", "age-restricted", and ("age" + "verif"/"restrict")
+     BEFORE "not available" so geo-blocks are not mis-classified as age gates,
+     and bot-detection errors don't trigger unnecessary cookie retries
 """
 
 import os
@@ -89,7 +93,6 @@ AD_SKIP_SECONDS   = 15
 # after the ad skip, without downloading unused video data.
 MAX_DOWNLOAD_SECONDS = 63    # was 90
 
-NODE_PATH         = r"C:\Program Files\nodejs\node.exe"
 
 # ── Cookies path ───────────────────────────────────────────────────────────────
 COOKIES_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "cookies.txt")
@@ -122,18 +125,21 @@ def _extract_video_id(url_or_id: str) -> str:
 # ── yt-dlp shared options ──────────────────────────────────────────────────────
 def _ydl_opts(extra: dict = None, cookies_file: str = None) -> dict:
     opts = {
-        "quiet":              True,
-        "no_warnings":        True,
-        "noprogress":         True,
-        "geo_bypass":         True,
+        "quiet": True,
+        "no_warnings": True,
+        "noprogress": True,
+        "geo_bypass": True,
         "geo_bypass_country": "US",
-        "js_runtimes":        {"node": {"path": NODE_PATH}},
-        "remote_components":  ["ejs:github"],
+
+        # ✅ FIXED
+        "js_runtimes": ["node"],
+
         "extractor_args": {
             "youtube": {
-                "player_client": ["web", "web_safari", "android_vr", "tv_embedded"]
+                "player_client": ["android", "web"]
             }
         },
+
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -143,11 +149,13 @@ def _ydl_opts(extra: dict = None, cookies_file: str = None) -> dict:
             "Accept-Language": "en-US,en;q=0.9",
         },
     }
+
     if cookies_file:
         opts["cookiefile"] = cookies_file
-        print(f"[SAMPLER] Using cookies: {cookies_file}")
+
     if extra:
         opts.update(extra)
+
     return opts
 
 
@@ -158,6 +166,7 @@ def fetch_video(video_id: str, max_duration: int = MAX_DOWNLOAD_SECONDS,
     Single yt-dlp call — validates availability AND downloads.
     Downloads only max_duration seconds (default 63s) to minimize wait time.
     """
+    print("[YTDLP] Trying download...")
     if not YTDLP_AVAILABLE:
         return {"ok": False, "reason": "yt-dlp not installed"}
 
@@ -173,7 +182,7 @@ def fetch_video(video_id: str, max_duration: int = MAX_DOWNLOAD_SECONDS,
         try:
             opts = _ydl_opts(
                 extra={
-                    "format":            "worst[ext=mp4]/worst",
+                    "format": "bv*+ba/b",
                     "outtmpl":           output_path,
                     "download_sections": [f"*0-{max_duration}"],
                     "postprocessors":    [],
@@ -196,6 +205,7 @@ def fetch_video(video_id: str, max_duration: int = MAX_DOWNLOAD_SECONDS,
                 "uploader":    info.get("uploader",     "Unknown"),
             }
         except Exception as e:
+            print(f"[YTDLP ERROR] {e}")
             last_error = e
             if os.path.exists(output_path):
                 try: os.remove(output_path)
@@ -203,16 +213,23 @@ def fetch_video(video_id: str, max_duration: int = MAX_DOWNLOAD_SECONDS,
             continue
 
     msg = str(last_error).lower()
-    if "not available" in msg:
-        reason = "Video is not available in this region or has been removed"
+    # ── Age-restriction check FIRST — its errors can also contain "not available" ──
+    # Covers 2025 YouTube patterns: "sign in to confirm your age",
+    # "age-restricted", and the older "age" + "restricted" combo.
+    if ("sign in to confirm" in msg or
+            "confirm your age" in msg or
+            "age-restricted" in msg or
+            ("age" in msg and "verif" in msg) or
+            ("age" in msg and "restrict" in msg)):
+        reason = "Video is age-restricted"
     elif "private" in msg:
         reason = "Video is private"
-    elif "age" in msg or "restricted" in msg:
-        reason = "Video is age-restricted"
-    elif "members" in msg:
+    elif "members" in msg or "member-only" in msg:
         reason = "Video is members-only"
     elif "copyright" in msg:
         reason = "Video is unavailable due to copyright"
+    elif "not available" in msg or "unavailable" in msg:
+        reason = "Video is not available in this region or has been removed"
     else:
         reason = str(last_error)
     return {"ok": False, "reason": reason}
@@ -473,7 +490,11 @@ def sample_video(video_url_or_id: str, thumbnail_url: str = "",
         print(f"[SAMPLER] Download: {time.time()-t0:.1f}s")
 
         # ── Step 2: Cookie retry for age-restricted ───────────────────────────
-        if not result["ok"] and "age" in result["reason"].lower():
+        # Uses the normalized reason string set by fetch_video, so this check
+        # is exact and won't fire on geo-blocks or bot-detection errors.
+        reason_lower = result["reason"].lower()
+        is_age_restricted = "age-restricted" in reason_lower
+        if not result["ok"] and is_age_restricted:
             if _has_cookies():
                 print(f"[SAMPLER] ⚠ Age-restricted — retrying with cookies.txt")
                 t0     = time.time()
