@@ -20,16 +20,25 @@ DB_PATH = os.path.join(
 # (mean=0.1821) score distributions overlap heavily below 0.20, causing
 # nearly all videos to be classified as Overstimulating in real-world testing.
 # 0.30 cleanly separates Overstimulating (mean=0.2675) from the other classes.
-ALPHA           = 0.6    # NB weight
-BETA            = 0.4    # Heuristic weight
-THRESHOLD_BLOCK = 0.30   # raised from 0.20 — was originally 0.75 in thesis
-THRESHOLD_ALLOW = 0.12   # raised from 0.08 — was originally 0.35 in thesis
+BASE_ALPHA      = 0.40   # NB weight when NB confidence >= CONF_THRESH
+LOW_ALPHA       = 0.15   # NB weight when NB confidence <  CONF_THRESH
+CONF_THRESH     = 0.40   # confidence boundary
+H_OVERRIDE      = 0.10   # if Score_H < this → cannot be Overstimulating
+THRESHOLD_BLOCK = 0.20   # >= Overstimulating
+THRESHOLD_ALLOW = 0.18   # <= Educational
 
-
-def _oir_label(score: float) -> str:
-    if score >= THRESHOLD_BLOCK: return "Overstimulating"
-    if score <= THRESHOLD_ALLOW: return "Educational"
-    return "Neutral"
+def _fuse(score_nb: float, score_h: float, nb_confidence: float) -> tuple[float, str]:
+    eff_alpha   = LOW_ALPHA if nb_confidence < CONF_THRESH else BASE_ALPHA
+    final       = round((eff_alpha * score_nb) + ((1 - eff_alpha) * score_h), 4)
+    if H_OVERRIDE > 0 and score_h < H_OVERRIDE:
+        label = "Educational" if final <= THRESHOLD_ALLOW else "Neutral"
+    elif final >= THRESHOLD_BLOCK:
+        label = "Overstimulating"
+    elif final <= THRESHOLD_ALLOW:
+        label = "Educational"
+    else:
+        label = "Neutral"
+    return final, label
 
 
 def extract_video_id(url: str) -> str:
@@ -250,9 +259,7 @@ def classify_full():
         predicted_label = nb_obj.predicted_label
 
         # ── Hybrid fusion ─────────────────────────────────────────────────────
-        # Score_final = (0.6 × Score_NB) + (0.4 × Score_H)
-        score_final = round((ALPHA * score_nb) + (BETA * score_h), 4)
-        oir_label   = _oir_label(score_final)
+        score_final, oir_label = _fuse(score_nb, score_h, nb_obj.confidence)
         action      = "block" if oir_label == "Overstimulating" else "allow"
 
         path_label = "full" if sample_status == "success" else "thumbnail-only"

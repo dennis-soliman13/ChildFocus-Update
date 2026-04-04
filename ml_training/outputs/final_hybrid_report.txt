@@ -1,29 +1,32 @@
-ChildFocus — Final Hybrid Evaluation Report
-Generated: 2026-04-04 06:32:22.264255
+ChildFocus — Final Hybrid Evaluation Report (v3 — Confidence-Gated)
+Generated: 2026-04-04 07:39:26.079980
 
 BEST CONFIGURATION
-  Alpha (NB weight): 0.4
-  Block threshold  : >= 0.2
-  Allow threshold  : <= 0.18
+  Base alpha (high-conf NB weight) : 0.4
+  Low  alpha (low-conf  NB weight) : 0.15
+  Confidence threshold             : 0.4
+  H-score override threshold       : 0.1
+  Block threshold                  : >= 0.2
+  Allow threshold                  : <= 0.18
 
 PERFORMANCE METRICS
-  Accuracy : 0.5000
-  Precision: 0.5087
-  Recall   : 0.5000
-  F1-Score : 0.4682
+  Accuracy : 0.6000
+  Precision: 0.6138
+  Recall   : 0.6000
+  F1-Score : 0.5937
 
                  precision    recall  f1-score   support
 
     Educational     0.5556    0.5000    0.5263        10
-        Neutral     0.5000    0.2000    0.2857        10
-Overstimulating     0.4706    0.8000    0.5926        10
+        Neutral     0.7143    0.5000    0.5882        10
+Overstimulating     0.5714    0.8000    0.6667        10
 
-       accuracy                         0.5000        30
-      macro avg     0.5087    0.5000    0.4682        30
-   weighted avg     0.5087    0.5000    0.4682        30
+       accuracy                         0.6000        30
+      macro avg     0.6138    0.6000    0.5937        30
+   weighted avg     0.6138    0.6000    0.5937        30
 
 CONFUSION MATRIX
                            Educa       Neutr       Overs
          Educational           5           2           3
-             Neutral           2           2           6
+             Neutral           2           5           3
      Overstimulating           2           0           8

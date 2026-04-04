@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-04T06:17:20.605106",
+  "generated": "2026-04-04T07:38:04.167618",
   "config": {
     "alpha_nb": 0.4,
     "beta_heuristic": 0.6,
@@ -91,7 +91,7 @@
       ],
       "thumbnail_intensity": 0.3612,
       "status": "success",
-      "runtime": 13.1
+      "runtime": 8.67
     },
     {
       "video_id": "G8nuZu0VDp4",
@@ -128,7 +128,7 @@
       ],
       "thumbnail_intensity": 0.3719,
       "status": "success",
-      "runtime": 44.5
+      "runtime": 8.37
     },
     {
       "video_id": "r6cJl89axqY",
@@ -165,7 +165,7 @@
       ],
       "thumbnail_intensity": 0.2479,
       "status": "success",
-      "runtime": 17.88
+      "runtime": 7.98
     },
     {
       "video_id": "g6_iSn3g8Jk",
@@ -202,7 +202,7 @@
       ],
       "thumbnail_intensity": 0.3389,
       "status": "success",
-      "runtime": 25.28
+      "runtime": 10.96
     },
     {
       "video_id": "fNyorKlm7wk",
@@ -239,7 +239,7 @@
       ],
       "thumbnail_intensity": 0.1988,
       "status": "success",
-      "runtime": 8.15
+      "runtime": 4.51
     },
     {
       "video_id": "jiEv6VTDt5c",
@@ -276,7 +276,7 @@
       ],
       "thumbnail_intensity": 0.2585,
       "status": "success",
-      "runtime": 27.4
+      "runtime": 8.99
     },
     {
       "video_id": "7aKsPwH1iss",
@@ -313,7 +313,7 @@
       ],
       "thumbnail_intensity": 0.472,
       "status": "success",
-      "runtime": 5.01
+      "runtime": 2.89
     },
     {
       "video_id": "Judk34NMBM0",
@@ -350,7 +350,7 @@
       ],
       "thumbnail_intensity": 0.3594,
       "status": "success",
-      "runtime": 175.64
+      "runtime": 32.83
     },
     {
       "video_id": "WFtA4ZJzQpA",
@@ -387,7 +387,7 @@
       ],
       "thumbnail_intensity": 0.1747,
       "status": "success",
-      "runtime": 46.37
+      "runtime": 6.69
     },
     {
       "video_id": "fU1KKvbCrRI",
@@ -424,7 +424,7 @@
       ],
       "thumbnail_intensity": 0.3918,
       "status": "success",
-      "runtime": 23.26
+      "runtime": 5.71
     },
     {
       "video_id": "8BKkKmxs_L8",
@@ -461,7 +461,7 @@
       ],
       "thumbnail_intensity": 0.3675,
       "status": "success",
-      "runtime": 25.09
+      "runtime": 6.6
     },
     {
       "video_id": "9w9GlT4Zyl8",
@@ -498,7 +498,7 @@
       ],
       "thumbnail_intensity": 0.2342,
       "status": "success",
-      "runtime": 51.48
+      "runtime": 10.97
     },
     {
       "video_id": "cvM0JM9DhkQ",
@@ -535,7 +535,7 @@
       ],
       "thumbnail_intensity": 0.3315,
       "status": "success",
-      "runtime": 17.75
+      "runtime": 5.36
     },
     {
       "video_id": "hkz51Td9k5A",
@@ -572,7 +572,7 @@
       ],
       "thumbnail_intensity": 0.3916,
       "status": "success",
-      "runtime": 24.48
+      "runtime": 6.3
     },
     {
       "video_id": "Wz--wtGlJtM",
@@ -609,7 +609,7 @@
       ],
       "thumbnail_intensity": 0.3186,
       "status": "success",
-      "runtime": 92.58
+      "runtime": 18.12
     },
     {
       "video_id": "QsaATI1BoCg",
@@ -646,7 +646,7 @@
       ],
       "thumbnail_intensity": 0.4172,
       "status": "success",
-      "runtime": 68.04
+      "runtime": 23.48
     },
     {
       "video_id": "ozsgl_sLnHQ",
@@ -683,7 +683,7 @@
       ],
       "thumbnail_intensity": 0.4154,
       "status": "success",
-      "runtime": 76.38
+      "runtime": 26.71
     },
     {
       "video_id": "ZY-NF22bKXY",
@@ -720,7 +720,7 @@
       ],
       "thumbnail_intensity": 0.2685,
       "status": "success",
-      "runtime": 9.03
+      "runtime": 3.42
     },
     {
       "video_id": "kopx0X8XTMM",
@@ -757,7 +757,7 @@
       ],
       "thumbnail_intensity": 0.3897,
       "status": "success",
-      "runtime": 11.83
+      "runtime": 4.53
     },
     {
       "video_id": "DvpQHdQFJdE",
@@ -794,7 +794,7 @@
       ],
       "thumbnail_intensity": 0.1219,
       "status": "success",
-      "runtime": 3.25
+      "runtime": 3.83
     },
     {
       "video_id": "IoJ1sbZ_IZc",
@@ -831,7 +831,7 @@
       ],
       "thumbnail_intensity": 0.335,
       "status": "success",
-      "runtime": 92.86
+      "runtime": 21.26
     },
     {
       "video_id": "wokA49B0Clk",
@@ -868,7 +868,7 @@
       ],
       "thumbnail_intensity": 0.456,
       "status": "success",
-      "runtime": 15.13
+      "runtime": 5.03
     },
     {
       "video_id": "T_aH__L2YsE",
@@ -905,7 +905,7 @@
       ],
       "thumbnail_intensity": 0.3707,
       "status": "success",
-      "runtime": 62.23
+      "runtime": 16.64
     },
     {
       "video_id": "AlB6ZNqykXU",
@@ -942,7 +942,7 @@
       ],
       "thumbnail_intensity": 0.2419,
       "status": "success",
-      "runtime": 4.37
+      "runtime": 4.75
     },
     {
       "video_id": "KI2xvN5uAio",
@@ -979,7 +979,7 @@
       ],
       "thumbnail_intensity": 0.2602,
       "status": "success",
-      "runtime": 3.06
+      "runtime": 3.3
     },
     {
       "video_id": "y1Z-O_iGpMg",
@@ -1016,7 +1016,7 @@
       ],
       "thumbnail_intensity": 0.3671,
       "status": "success",
-      "runtime": 16.91
+      "runtime": 17.17
     },
     {
       "video_id": "d7Gdv5qI6FA",
@@ -1053,7 +1053,7 @@
       ],
       "thumbnail_intensity": 0.1708,
       "status": "success",
-      "runtime": 4.53
+      "runtime": 5.29
     },
     {
       "video_id": "qaRYVwND3SQ",
@@ -1090,7 +1090,7 @@
       ],
       "thumbnail_intensity": 0.1764,
       "status": "success",
-      "runtime": 5.05
+      "runtime": 6.36
     },
     {
       "video_id": "v7cuoaoUTKQ",
@@ -1127,7 +1127,7 @@
       ],
       "thumbnail_intensity": 0.4262,
       "status": "success",
-      "runtime": 12.92
+      "runtime": 9.51
     },
     {
       "video_id": "jnWBzRBx2t4",
@@ -1164,7 +1164,7 @@
       ],
       "thumbnail_intensity": 0.3229,
       "status": "success",
-      "runtime": 11.83
+      "runtime": 13.46
     }
   ]
 }
