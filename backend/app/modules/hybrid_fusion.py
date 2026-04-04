@@ -30,14 +30,14 @@ v3 update — Confidence-Gated Alpha + H-Score Override:
      Theoretical basis: a Naïve Bayes P(Overstimulating) near the prior
      (~0.33) with high entropy across classes carries little information.
      The audiovisual heuristic, being class-agnostic, is then the better
-     signal.
+     signal
 
   2. H-SCORE OVERRIDE
      If Score_H < H_OVERRIDE (0.10), the video cannot realistically
      be Overstimulating regardless of Score_NB.  Empirical basis: no
      confirmed Overstimulating video in the 30-video evaluation set had
      Score_H < 0.129.  A score below 0.10 indicates slow pacing, low audio
-     transients, and low visual variance — the opposite of brain-rot content.
+     transients, and low visual variance — the opposite of brain-rot content
 
   Combined effect: Accuracy 50% → 60%, F1 0.4682 → 0.5937
   Overstimulating recall maintained at 80% (child safety floor).
