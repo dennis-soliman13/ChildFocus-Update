@@ -14,12 +14,12 @@ DB_PATH = os.path.join(
     os.path.dirname(__file__), "..", "..", "..", "database", "childfocus.db"
 )
 
-# ── Empirically validated fusion config (v2 recalibration) ───────────────────
-# Thresholds raised from 0.20/0.08 to 0.30/0.12 after observing that the
-# first recalibration overcorrected: Educational (mean=0.1894) and Neutral
-# (mean=0.1821) score distributions overlap heavily below 0.20, causing
-# nearly all videos to be classified as Overstimulating in real-world testing.
-# 0.30 cleanly separates Overstimulating (mean=0.2675) from the other classes.
+# ── Confidence-gated hybrid fusion config (v3) ───────────────────────────────
+# When NB confidence < CONF_THRESH the heuristic gets more weight because
+# audiovisual pacing is a more reliable signal than an uncertain text
+# classification.  H_OVERRIDE caps any extremely slow-paced video as
+# non-Overstimulating regardless of Score_NB.
+# Validated on 30-video dataset: calibration acc=60%, held-out test acc=60%.
 BASE_ALPHA      = 0.40   # NB weight when NB confidence >= CONF_THRESH
 LOW_ALPHA       = 0.15   # NB weight when NB confidence <  CONF_THRESH
 CONF_THRESH     = 0.40   # confidence boundary
@@ -60,7 +60,10 @@ def _nb_only_result(video_id: str, metadata: dict, reason: str, t_start: float) 
     nb_obj      = score_from_metadata_dict(metadata)
     score_nb    = nb_obj.score_nb
     score_final = round(score_nb, 4)
-    oir_label   = _oir_label(score_final)
+    # NB-only path: no heuristic score available, classify directly on Score_NB
+    if   score_final >= THRESHOLD_BLOCK: oir_label = "Overstimulating"
+    elif score_final <= THRESHOLD_ALLOW: oir_label = "Educational"
+    else:                                oir_label = "Neutral"
     action      = "block" if oir_label == "Overstimulating" else "allow"
     runtime     = round(time.time() - t_start, 3)
     print(f"[ROUTE] NB-only ({reason[:60]}) → {video_id} {oir_label} ({score_final}) in {runtime}s")
@@ -177,8 +180,11 @@ def classify_full():
       1. Naïve Bayes — metadata scoring (title, tags, description)
       2. Heuristic   — audiovisual analysis (FCR, CSV, ATT, thumbnail)
 
-    Fusion: Score_final = (0.6 × Score_NB) + (0.4 × Score_H)
-    Thresholds: Block >= 0.20, Allow <= 0.08
+    Fusion (v3 confidence-gated):
+      eff_alpha   = LOW_ALPHA (0.15) if NB confidence < 0.40 else BASE_ALPHA (0.40)
+      Score_final = (eff_alpha × Score_NB) + ((1 − eff_alpha) × Score_H)
+      H-override  : Score_H < 0.10 → cannot be Overstimulating
+    Thresholds: Block >= 0.20, Allow <= 0.18
 
     Fallback chain inside sample_video():
       Normal download
@@ -280,8 +286,12 @@ def classify_full():
             "status":            "success",
             "sample_path":       path_label,
             "fusion_weights": {
-                "alpha_nb":       ALPHA,
-                "beta_heuristic": BETA,
+                "version":       "v3-confidence-gated",
+                "base_alpha_nb": BASE_ALPHA,
+                "low_alpha_nb":  LOW_ALPHA,
+                "conf_thresh":   CONF_THRESH,
+                "h_override":    H_OVERRIDE,
+                "eff_alpha":     LOW_ALPHA if nb_obj.confidence < CONF_THRESH else BASE_ALPHA,
             },
             "heuristic_details": h_details,
             "nb_details": {
@@ -405,9 +415,13 @@ def health():
         "cookies_path": COOKIES_PATH,
         "cookies_ok":   _has_cookies(),
         "fusion_config": {
-            "alpha_nb":        ALPHA,
-            "beta_heuristic":  BETA,
+            "version":         "v3-confidence-gated",
+            "base_alpha_nb":   BASE_ALPHA,
+            "low_alpha_nb":    LOW_ALPHA,
+            "conf_thresh":     CONF_THRESH,
+            "h_override":      H_OVERRIDE,
             "threshold_block": THRESHOLD_BLOCK,
             "threshold_allow": THRESHOLD_ALLOW,
+            "neutral_range":   f"{THRESHOLD_ALLOW} < score < {THRESHOLD_BLOCK}",
         },
     }), 200
