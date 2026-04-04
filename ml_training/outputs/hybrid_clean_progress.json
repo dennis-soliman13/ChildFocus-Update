@@ -1,0 +1,1757 @@
+[
+  {
+    "video_id": "lmRmk2HrqYA",
+    "title": "Animal Showdown \ud83d\udc3b\ud83d\udc0a\ud83e\udd85 | 25 Minutes | Nat Geo Kids Compilation | @natgeokids",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.3134,
+    "score_h": 0.0006,
+    "score_final": 0.0475,
+    "nb_confidence": 0.3806,
+    "effective_alpha": 0.15,
+    "h_overridden": true,
+    "sample_path": "thumbnail_only",
+    "segments": [
+      {
+        "segment_id": "S_THUMB",
+        "fcr": 0.0,
+        "csv": 0.0,
+        "att": 0.0,
+        "score_h": 0.0
+      },
+      {
+        "segment_id": "S_THUMB",
+        "fcr": 0.0,
+        "csv": 0.0,
+        "att": 0.0,
+        "score_h": 0.0
+      },
+      {
+        "segment_id": "S_THUMB",
+        "fcr": 0.0,
+        "csv": 0.0,
+        "att": 0.0,
+        "score_h": 0.0
+      }
+    ],
+    "thumbnail_intensity": 0.0065,
+    "status": "success",
+    "runtime": 6.12
+  },
+  {
+    "video_id": "hNFppd7L0Bg",
+    "title": "OMG CAPCUT HAS SMOOTH VELOCITY \ud83d\ude2e!?! || never have i ever #shorts",
+    "true_label": "Overstimulating",
+    "pred_label": "Educational",
+    "score_nb": 0.3906,
+    "score_h": 0.0682,
+    "score_final": 0.1166,
+    "nb_confidence": 0.3906,
+    "effective_alpha": 0.15,
+    "h_overridden": true,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0,
+        "csv": 0.0282,
+        "att": 0.1533,
+        "score_h": 0.0502
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0,
+        "csv": 0.0282,
+        "att": 0.1533,
+        "score_h": 0.0502
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0,
+        "csv": 0.0282,
+        "att": 0.1533,
+        "score_h": 0.0502
+      }
+    ],
+    "thumbnail_intensity": 0.2304,
+    "status": "success",
+    "runtime": 7.57
+  },
+  {
+    "video_id": "FjtyU_KNits",
+    "title": "Learn the Alphabet Sounds with Yakka Dee - A-L | CBeebies #phonics",
+    "true_label": "Educational",
+    "pred_label": "Neutral",
+    "score_nb": 0.2458,
+    "score_h": 0.1637,
+    "score_final": 0.1965,
+    "nb_confidence": 0.4561,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1,
+        "csv": 0.2392,
+        "att": 0.1971,
+        "score_h": 0.14
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.05,
+        "csv": 0.2955,
+        "att": 0.1695,
+        "score_h": 0.1177
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.175,
+        "csv": 0.2007,
+        "att": 0.1347,
+        "score_h": 0.1493
+      }
+    ],
+    "thumbnail_intensity": 0.2932,
+    "status": "success",
+    "runtime": 11.78
+  },
+  {
+    "video_id": "_f1QbJm1irY",
+    "title": "The Smartest Giant in Town - Animated Read Aloud Book",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.0494,
+    "score_h": 0.1679,
+    "score_final": 0.1205,
+    "nb_confidence": 0.9196,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.125,
+        "csv": 0.1558,
+        "att": 0.1564,
+        "score_h": 0.1265
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.125,
+        "csv": 0.1562,
+        "att": 0.1741,
+        "score_h": 0.1319
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2,
+        "csv": 0.1859,
+        "att": 0.1077,
+        "score_h": 0.1502
+      }
+    ],
+    "thumbnail_intensity": 0.3274,
+    "status": "success",
+    "runtime": 12.02
+  },
+  {
+    "video_id": "LMuBxwVy3HM",
+    "title": "Peppa Pig Full Episodes | Pottery | Cartoons for Children",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.183,
+    "score_h": 0.1328,
+    "score_final": 0.1529,
+    "nb_confidence": 0.6132,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.05,
+        "csv": 0.0239,
+        "att": 0.2439,
+        "score_h": 0.0993
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.05,
+        "csv": 0.0179,
+        "att": 0.2397,
+        "score_h": 0.0971
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1,
+        "csv": 0.0427,
+        "att": 0.2246,
+        "score_h": 0.1188
+      }
+    ],
+    "thumbnail_intensity": 0.2586,
+    "status": "success",
+    "runtime": 53.06
+  },
+  {
+    "video_id": "PVFNfmoH6pg",
+    "title": "How To Draw A Cute Husky With A Backpack",
+    "true_label": "Neutral",
+    "pred_label": "Neutral",
+    "score_nb": 0.245,
+    "score_h": 0.1583,
+    "score_final": 0.193,
+    "nb_confidence": 0.5801,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1136,
+        "csv": 0.2079,
+        "att": 0.2195,
+        "score_h": 0.1482
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0227,
+        "csv": 0.0539,
+        "att": 0.2037,
+        "score_h": 0.0794
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0,
+        "csv": 0.0261,
+        "att": 0.151,
+        "score_h": 0.0492
+      }
+    ],
+    "thumbnail_intensity": 0.2489,
+    "status": "success",
+    "runtime": 15.88
+  },
+  {
+    "video_id": "9w9GlT4Zyl8",
+    "title": "Wall&#39;s 3 in 1 Ice Cream \ud83c\udf66 Perfect Mini Summer Dessert by Miniature Cooking",
+    "true_label": "Neutral",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.2738,
+    "score_h": 0.1653,
+    "score_final": 0.2087,
+    "nb_confidence": 0.5055,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1591,
+        "csv": 0.2031,
+        "att": 0.1852,
+        "score_h": 0.1576
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1591,
+        "csv": 0.0443,
+        "att": 0.1623,
+        "score_h": 0.1269
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1364,
+        "csv": 0.1352,
+        "att": 0.1734,
+        "score_h": 0.1337
+      }
+    ],
+    "thumbnail_intensity": 0.2342,
+    "status": "success",
+    "runtime": 21.17
+  },
+  {
+    "video_id": "GJuO4MzYrtI",
+    "title": "Thank You Teachers! | SciShow Kids",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.1481,
+    "score_h": 0.1691,
+    "score_final": 0.1607,
+    "nb_confidence": 0.7699,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0909,
+        "csv": 0.02,
+        "att": 0.2631,
+        "score_h": 0.1228
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0909,
+        "csv": 0.0207,
+        "att": 0.2584,
+        "score_h": 0.1215
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1136,
+        "csv": 0.0191,
+        "att": 0.2626,
+        "score_h": 0.1328
+      }
+    ],
+    "thumbnail_intensity": 0.4958,
+    "status": "success",
+    "runtime": 6.74
+  },
+  {
+    "video_id": "G8nuZu0VDp4",
+    "title": "5 Minute Stories Book Read-Along \ud83d\udcda | A Baby Sea Turtle's Journey \ud83d\udc22 | @natgeokids",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.1658,
+    "score_h": 0.1804,
+    "score_final": 0.1746,
+    "nb_confidence": 0.7088,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0682,
+        "csv": 0.3901,
+        "att": 0.1791,
+        "score_h": 0.1429
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0455,
+        "csv": 0.0457,
+        "att": 0.1983,
+        "score_h": 0.0868
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0227,
+        "csv": 0.6243,
+        "att": 0.1852,
+        "score_h": 0.1594
+      }
+    ],
+    "thumbnail_intensity": 0.3691,
+    "status": "success",
+    "runtime": 13.71
+  },
+  {
+    "video_id": "_fsjQXoqFtM",
+    "title": "Precious Plant GOES TO THE BIN! | Mr Bean Animated  | EP 11 Season 4 Full Episod",
+    "true_label": "Neutral",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.2723,
+    "score_h": 0.1811,
+    "score_final": 0.2176,
+    "nb_confidence": 0.4124,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.125,
+        "csv": 0.5062,
+        "att": 0.1391,
+        "score_h": 0.1739
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.175,
+        "csv": 0.1797,
+        "att": 0.1622,
+        "score_h": 0.1544
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.15,
+        "csv": 0.0235,
+        "att": 0.1817,
+        "score_h": 0.1255
+      }
+    ],
+    "thumbnail_intensity": 0.2456,
+    "status": "success",
+    "runtime": 19.41
+  },
+  {
+    "video_id": "RxCwVQGlDis",
+    "title": "Baby Shark Dance | DJ Raphi Songs for Children",
+    "true_label": "Overstimulating",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.4487,
+    "score_h": 0.1032,
+    "score_final": 0.2414,
+    "nb_confidence": 0.4487,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0,
+        "csv": 0.023,
+        "att": 0.1648,
+        "score_h": 0.0529
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0,
+        "csv": 0.0331,
+        "att": 0.1607,
+        "score_h": 0.0532
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.025,
+        "csv": 0.0419,
+        "att": 0.1585,
+        "score_h": 0.0651
+      }
+    ],
+    "thumbnail_intensity": 0.4463,
+    "status": "success",
+    "runtime": 8.45
+  },
+  {
+    "video_id": "7SWvlUd2at8",
+    "title": "10 Easy Animal Drawings for Kids Vol. 1 | Step by Step Drawing Tutorials | How t",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.2304,
+    "score_h": 0.0855,
+    "score_final": 0.1435,
+    "nb_confidence": 0.6545,
+    "effective_alpha": 0.4,
+    "h_overridden": true,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0,
+        "csv": 0.0166,
+        "att": 0.1746,
+        "score_h": 0.0549
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.025,
+        "csv": 0.143,
+        "att": 0.1713,
+        "score_h": 0.0841
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.025,
+        "csv": 0.0383,
+        "att": 0.1811,
+        "score_h": 0.0713
+      }
+    ],
+    "thumbnail_intensity": 0.0982,
+    "status": "success",
+    "runtime": 14.68
+  },
+  {
+    "video_id": "eg2mr1IticM",
+    "title": "EASTER EGG ASMR! \ud83d\udc23\ud83d\udc9a\ud83e\ude77\ud83e\ude75 #asmr #asmrsounds #relaxing #satisfying #trend #fun",
+    "true_label": "Overstimulating",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.5102,
+    "score_h": 0.158,
+    "score_final": 0.2989,
+    "nb_confidence": 0.5102,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1364,
+        "csv": 0.0357,
+        "att": 0.1531,
+        "score_h": 0.1127
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1818,
+        "csv": 0.0449,
+        "att": 0.1497,
+        "score_h": 0.1335
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1364,
+        "csv": 0.0527,
+        "att": 0.1616,
+        "score_h": 0.1178
+      }
+    ],
+    "thumbnail_intensity": 0.3783,
+    "status": "success",
+    "runtime": 5.28
+  },
+  {
+    "video_id": "3JGOK5q5IMA",
+    "title": "3-Ingredient Nutella Cookies! Recipe tutorial #Shorts",
+    "true_label": "Neutral",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.3143,
+    "score_h": 0.2172,
+    "score_final": 0.256,
+    "nb_confidence": 0.439,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1944,
+        "csv": 0.2558,
+        "att": 0.2798,
+        "score_h": 0.2098
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1944,
+        "csv": 0.2558,
+        "att": 0.2798,
+        "score_h": 0.2098
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1944,
+        "csv": 0.2558,
+        "att": 0.2798,
+        "score_h": 0.2098
+      }
+    ],
+    "thumbnail_intensity": 0.2842,
+    "status": "success",
+    "runtime": 14.37
+  },
+  {
+    "video_id": "9M4JWcKEdL0",
+    "title": "Three Space Weather Missions Lift Off",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.2949,
+    "score_h": 0.0936,
+    "score_final": 0.1238,
+    "nb_confidence": 0.3891,
+    "effective_alpha": 0.15,
+    "h_overridden": true,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0455,
+        "csv": 0.1693,
+        "att": 0.1307,
+        "score_h": 0.0851
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0455,
+        "csv": 0.2194,
+        "att": 0.1237,
+        "score_h": 0.0905
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0682,
+        "csv": 0.1804,
+        "att": 0.1289,
+        "score_h": 0.0964
+      }
+    ],
+    "thumbnail_intensity": 0.0683,
+    "status": "success",
+    "runtime": 5.8
+  },
+  {
+    "video_id": "sOxloXyOAKA",
+    "title": "Nature View Cristal beach Beuti of nature 4k View shorts video \ud83d\udcf8\ud83d\ude0d",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.2943,
+    "score_h": 0.0673,
+    "score_final": 0.1581,
+    "nb_confidence": 0.4428,
+    "effective_alpha": 0.4,
+    "h_overridden": true,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0,
+        "csv": 0.0159,
+        "att": 0.099,
+        "score_h": 0.0321
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0,
+        "csv": 0.0159,
+        "att": 0.099,
+        "score_h": 0.0321
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0,
+        "csv": 0.0159,
+        "att": 0.099,
+        "score_h": 0.0321
+      }
+    ],
+    "thumbnail_intensity": 0.3843,
+    "status": "success",
+    "runtime": 6.0
+  },
+  {
+    "video_id": "NQOD8oBfZjs",
+    "title": "A Day In The Life Of Serengeti Animals | Serengeti II | BBC Earth Kids",
+    "true_label": "Neutral",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.3318,
+    "score_h": 0.1685,
+    "score_final": 0.2338,
+    "nb_confidence": 0.4536,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1,
+        "csv": 0.1814,
+        "att": 0.1524,
+        "score_h": 0.1179
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.175,
+        "csv": 0.1612,
+        "att": 0.1443,
+        "score_h": 0.1462
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2,
+        "csv": 0.1088,
+        "att": 0.1806,
+        "score_h": 0.1605
+      }
+    ],
+    "thumbnail_intensity": 0.2402,
+    "status": "success",
+    "runtime": 29.07
+  },
+  {
+    "video_id": "D5XMzXizUKA",
+    "title": "60 Minutes Ultimate Cooking Toys Playset,Satisfying Unboxing McDonald&#39;s Fast",
+    "true_label": "Overstimulating",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.7929,
+    "score_h": 0.1613,
+    "score_final": 0.4139,
+    "nb_confidence": 0.7929,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1364,
+        "csv": 0.1004,
+        "att": 0.2128,
+        "score_h": 0.1403
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1591,
+        "csv": 0.0782,
+        "att": 0.2104,
+        "score_h": 0.1464
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0909,
+        "csv": 0.0677,
+        "att": 0.1788,
+        "score_h": 0.1047
+      }
+    ],
+    "thumbnail_intensity": 0.2955,
+    "status": "success",
+    "runtime": 170.65
+  },
+  {
+    "video_id": "Nx9rbyz3iDc",
+    "title": "What really happens when we cover our cameras \ud83d\ude2e",
+    "true_label": "Neutral",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.3281,
+    "score_h": 0.1821,
+    "score_final": 0.2405,
+    "nb_confidence": 0.421,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2,
+        "csv": 0.2297,
+        "att": 0.1177,
+        "score_h": 0.1598
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.2,
+        "csv": 0.2297,
+        "att": 0.1177,
+        "score_h": 0.1598
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2,
+        "csv": 0.2297,
+        "att": 0.1177,
+        "score_h": 0.1598
+      }
+    ],
+    "thumbnail_intensity": 0.3826,
+    "status": "success",
+    "runtime": 4.73
+  },
+  {
+    "video_id": "XSun4GUyhuY",
+    "title": "Preschool Learning activities for 3 year olds at home | Learn ABC Phonics Shapes",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.0317,
+    "score_h": 0.1356,
+    "score_final": 0.094,
+    "nb_confidence": 0.9477,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "thumbnail_only",
+    "segments": [
+      {
+        "segment_id": "S_THUMB",
+        "fcr": 0.0,
+        "csv": 0.7012,
+        "att": 0.0,
+        "score_h": 0.1753
+      },
+      {
+        "segment_id": "S_THUMB",
+        "fcr": 0.0,
+        "csv": 0.7012,
+        "att": 0.0,
+        "score_h": 0.1753
+      },
+      {
+        "segment_id": "S_THUMB",
+        "fcr": 0.0,
+        "csv": 0.7012,
+        "att": 0.0,
+        "score_h": 0.1753
+      }
+    ],
+    "thumbnail_intensity": 0.409,
+    "status": "success",
+    "runtime": 4.18
+  },
+  {
+    "video_id": "mDzIA3VUFKI",
+    "title": "Lunar New Year Dance \ud83d\udc83\ud83d\udc6f\ud83c\udfee Talking Tom #Shorts",
+    "true_label": "Overstimulating",
+    "pred_label": "Educational",
+    "score_nb": 0.3185,
+    "score_h": 0.1383,
+    "score_final": 0.1653,
+    "nb_confidence": 0.3962,
+    "effective_alpha": 0.15,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.125,
+        "csv": 0.1334,
+        "att": 0.1482,
+        "score_h": 0.1207
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.125,
+        "csv": 0.1334,
+        "att": 0.1482,
+        "score_h": 0.1207
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.125,
+        "csv": 0.1334,
+        "att": 0.1482,
+        "score_h": 0.1207
+      }
+    ],
+    "thumbnail_intensity": 0.2962,
+    "status": "success",
+    "runtime": 4.46
+  },
+  {
+    "video_id": "qCs0pm_D_hM",
+    "title": "Colors for Children | Toy Trains - Colors Videos Collection",
+    "true_label": "Overstimulating",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.7427,
+    "score_h": 0.1664,
+    "score_final": 0.3969,
+    "nb_confidence": 0.7427,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2,
+        "csv": 0.2131,
+        "att": 0.1243,
+        "score_h": 0.1593
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.175,
+        "csv": 0.1782,
+        "att": 0.1323,
+        "score_h": 0.1452
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.175,
+        "csv": 0.1607,
+        "att": 0.1284,
+        "score_h": 0.1414
+      }
+    ],
+    "thumbnail_intensity": 0.2305,
+    "status": "success",
+    "runtime": 15.5
+  },
+  {
+    "video_id": "jiEv6VTDt5c",
+    "title": "Learn to Read - 3-Letter Word - Letter Sound - Phonics for Kids",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.1796,
+    "score_h": 0.1348,
+    "score_final": 0.1527,
+    "nb_confidence": 0.6544,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0455,
+        "csv": 0.2919,
+        "att": 0.1893,
+        "score_h": 0.121
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0,
+        "csv": 0.0094,
+        "att": 0.1864,
+        "score_h": 0.0573
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0455,
+        "csv": 0.1372,
+        "att": 0.1981,
+        "score_h": 0.1005
+      }
+    ],
+    "thumbnail_intensity": 0.2585,
+    "status": "success",
+    "runtime": 13.63
+  },
+  {
+    "video_id": "bt3ttH11QT8",
+    "title": "Smashing a 34,000 Brick Statue",
+    "true_label": "Overstimulating",
+    "pred_label": "Neutral",
+    "score_nb": 0.3813,
+    "score_h": 0.1591,
+    "score_final": 0.1924,
+    "nb_confidence": 0.3901,
+    "effective_alpha": 0.15,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2143,
+        "csv": 0.055,
+        "att": 0.1672,
+        "score_h": 0.1548
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.2143,
+        "csv": 0.055,
+        "att": 0.1672,
+        "score_h": 0.1548
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2143,
+        "csv": 0.055,
+        "att": 0.1672,
+        "score_h": 0.1548
+      }
+    ],
+    "thumbnail_intensity": 0.1978,
+    "status": "success",
+    "runtime": 6.69
+  },
+  {
+    "video_id": "C4l7rfjX49I",
+    "title": "Who won? #shorts #family",
+    "true_label": "Neutral",
+    "pred_label": "Neutral",
+    "score_nb": 0.3709,
+    "score_h": 0.0984,
+    "score_final": 0.2074,
+    "nb_confidence": 0.4112,
+    "effective_alpha": 0.4,
+    "h_overridden": true,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1071,
+        "csv": 0.0354,
+        "att": 0.1285,
+        "score_h": 0.0921
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1071,
+        "csv": 0.0354,
+        "att": 0.1285,
+        "score_h": 0.0921
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1071,
+        "csv": 0.0354,
+        "att": 0.1285,
+        "score_h": 0.0921
+      }
+    ],
+    "thumbnail_intensity": 0.1552,
+    "status": "success",
+    "runtime": 5.32
+  },
+  {
+    "video_id": "rbVkRDOjMa8",
+    "title": "Sunny Bunnies | Shiny Bright Bunny | COMPILATION | Videos For Kids",
+    "true_label": "Overstimulating",
+    "pred_label": "Neutral",
+    "score_nb": 0.1952,
+    "score_h": 0.1865,
+    "score_final": 0.19,
+    "nb_confidence": 0.6318,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.175,
+        "csv": 0.2869,
+        "att": 0.1411,
+        "score_h": 0.1641
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.075,
+        "csv": 0.1003,
+        "att": 0.1772,
+        "score_h": 0.102
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.175,
+        "csv": 0.0592,
+        "att": 0.1529,
+        "score_h": 0.1335
+      }
+    ],
+    "thumbnail_intensity": 0.3883,
+    "status": "success",
+    "runtime": 90.43
+  },
+  {
+    "video_id": "2K4o11uxhs0",
+    "title": "ABC Phonics Song + More Nursery Rhymes &amp; Kids Songs - ABCs and 123s | Learn ",
+    "true_label": "Educational",
+    "pred_label": "Neutral",
+    "score_nb": 0.1926,
+    "score_h": 0.1829,
+    "score_final": 0.1868,
+    "nb_confidence": 0.6167,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2,
+        "csv": 0.1897,
+        "att": 0.1714,
+        "score_h": 0.1699
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.2,
+        "csv": 0.1734,
+        "att": 0.1471,
+        "score_h": 0.1601
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.225,
+        "csv": 0.1018,
+        "att": 0.1444,
+        "score_h": 0.1598
+      }
+    ],
+    "thumbnail_intensity": 0.3,
+    "status": "success",
+    "runtime": 100.25
+  },
+  {
+    "video_id": "r2bW4ySQr-4",
+    "title": "Creative Art For Kids Chair \ud83e\ude91\ud83c\udf08 #shorts #creativeart #Kidsvideos #Anaya #kids #ki",
+    "true_label": "Neutral",
+    "pred_label": "Neutral",
+    "score_nb": 0.3763,
+    "score_h": 0.0655,
+    "score_final": 0.1898,
+    "nb_confidence": 0.4246,
+    "effective_alpha": 0.4,
+    "h_overridden": true,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.05,
+        "csv": 0.0506,
+        "att": 0.1171,
+        "score_h": 0.0652
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.05,
+        "csv": 0.0506,
+        "att": 0.1171,
+        "score_h": 0.0652
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.05,
+        "csv": 0.0506,
+        "att": 0.1171,
+        "score_h": 0.0652
+      }
+    ],
+    "thumbnail_intensity": 0.0681,
+    "status": "success",
+    "runtime": 5.23
+  },
+  {
+    "video_id": "0LnhNC_wHY8",
+    "title": "Rain, Rain, Go Away Nursery Rhyme in 4K - ChuChu TV Kids Songs for Infants #ChuC",
+    "true_label": "Overstimulating",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.4236,
+    "score_h": 0.2035,
+    "score_final": 0.2915,
+    "nb_confidence": 0.4236,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.225,
+        "csv": 0.2998,
+        "att": 0.1307,
+        "score_h": 0.1854
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.175,
+        "csv": 0.163,
+        "att": 0.1362,
+        "score_h": 0.1441
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1,
+        "csv": 0.1171,
+        "att": 0.139,
+        "score_h": 0.1043
+      }
+    ],
+    "thumbnail_intensity": 0.3667,
+    "status": "success",
+    "runtime": 18.01
+  },
+  {
+    "video_id": "R_CD6ellkyk",
+    "title": "Relaxing Video of a Sunrise Beach #shorts",
+    "true_label": "Neutral",
+    "pred_label": "Educational",
+    "score_nb": 0.2619,
+    "score_h": 0.0564,
+    "score_final": 0.1386,
+    "nb_confidence": 0.4708,
+    "effective_alpha": 0.4,
+    "h_overridden": true,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0,
+        "csv": 0.0276,
+        "att": 0.1056,
+        "score_h": 0.0358
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0,
+        "csv": 0.0276,
+        "att": 0.1056,
+        "score_h": 0.0358
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0,
+        "csv": 0.0276,
+        "att": 0.1056,
+        "score_h": 0.0358
+      }
+    ],
+    "thumbnail_intensity": 0.2422,
+    "status": "success",
+    "runtime": 5.23
+  },
+  {
+    "video_id": "mXMofxtDPUQ",
+    "title": "Days of the Week Song | The Singing Walrus",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.2361,
+    "score_h": 0.1013,
+    "score_final": 0.1552,
+    "nb_confidence": 0.5357,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0,
+        "csv": 0.0624,
+        "att": 0.2035,
+        "score_h": 0.0704
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0,
+        "csv": 0.0373,
+        "att": 0.1963,
+        "score_h": 0.0645
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0,
+        "csv": 0.027,
+        "att": 0.1839,
+        "score_h": 0.0592
+      }
+    ],
+    "thumbnail_intensity": 0.3798,
+    "status": "success",
+    "runtime": 8.14
+  },
+  {
+    "video_id": "zugFjQ8tN3E",
+    "title": "Eva Emma & Kaden Playground Germs! Let\u2019s Clean Together",
+    "true_label": "Overstimulating",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.3791,
+    "score_h": 0.1871,
+    "score_final": 0.2639,
+    "nb_confidence": 0.4085,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.225,
+        "csv": 0.2065,
+        "att": 0.1699,
+        "score_h": 0.1832
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.225,
+        "csv": 0.1903,
+        "att": 0.1687,
+        "score_h": 0.1804
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2,
+        "csv": 0.1585,
+        "att": 0.1662,
+        "score_h": 0.1636
+      }
+    ],
+    "thumbnail_intensity": 0.2226,
+    "status": "success",
+    "runtime": 93.15
+  },
+  {
+    "video_id": "b2sjCyAsFbM",
+    "title": "Peter Rabbit - Camping by the Lake | Cartoons for Kids",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.1974,
+    "score_h": 0.1632,
+    "score_final": 0.1769,
+    "nb_confidence": 0.6805,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1136,
+        "csv": 0.144,
+        "att": 0.1073,
+        "score_h": 0.1049
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1364,
+        "csv": 0.044,
+        "att": 0.1578,
+        "score_h": 0.1153
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2045,
+        "csv": 0.0682,
+        "att": 0.1692,
+        "score_h": 0.153
+      }
+    ],
+    "thumbnail_intensity": 0.2546,
+    "status": "success",
+    "runtime": 20.65
+  },
+  {
+    "video_id": "6VQip5MI5d8",
+    "title": "Johny Johny Yes Papa + Wheels On The Bus + Baby Shark + A Ram Sam Sam | Learn Co",
+    "true_label": "Overstimulating",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.5323,
+    "score_h": 0.1739,
+    "score_final": 0.3173,
+    "nb_confidence": 0.5323,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2,
+        "csv": 0.0764,
+        "att": 0.1409,
+        "score_h": 0.1437
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.175,
+        "csv": 0.1173,
+        "att": 0.1326,
+        "score_h": 0.1361
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.225,
+        "csv": 0.0831,
+        "att": 0.1449,
+        "score_h": 0.1572
+      }
+    ],
+    "thumbnail_intensity": 0.3246,
+    "status": "success",
+    "runtime": 13.45
+  },
+  {
+    "video_id": "1nJ5VbyD6tY",
+    "title": "2D Shapes Song",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.118,
+    "score_h": 0.1529,
+    "score_final": 0.1389,
+    "nb_confidence": 0.7201,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0455,
+        "csv": 0.1642,
+        "att": 0.2034,
+        "score_h": 0.1061
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0909,
+        "csv": 0.1191,
+        "att": 0.227,
+        "score_h": 0.1269
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1364,
+        "csv": 0.1365,
+        "att": 0.2162,
+        "score_h": 0.1467
+      }
+    ],
+    "thumbnail_intensity": 0.209,
+    "status": "success",
+    "runtime": 13.53
+  },
+  {
+    "video_id": "v3BCkHGnKT4",
+    "title": "Andrea Becomes Superheroes to Save the Toys!",
+    "true_label": "Overstimulating",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.4332,
+    "score_h": 0.1872,
+    "score_final": 0.2856,
+    "nb_confidence": 0.4332,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.225,
+        "csv": 0.1755,
+        "att": 0.1632,
+        "score_h": 0.1765
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.225,
+        "csv": 0.1392,
+        "att": 0.1544,
+        "score_h": 0.1684
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.225,
+        "csv": 0.1404,
+        "att": 0.168,
+        "score_h": 0.1727
+      }
+    ],
+    "thumbnail_intensity": 0.2838,
+    "status": "success",
+    "runtime": 32.84
+  },
+  {
+    "video_id": "viurF6fz9Xg",
+    "title": "$1 VS $1,000,000 99 NIGHTS IN THE FOREST BASE",
+    "true_label": "Overstimulating",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.3463,
+    "score_h": 0.1939,
+    "score_final": 0.2549,
+    "nb_confidence": 0.412,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.2045,
+        "csv": 0.0998,
+        "att": 0.1662,
+        "score_h": 0.1569
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.2273,
+        "csv": 0.0856,
+        "att": 0.1663,
+        "score_h": 0.165
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.2273,
+        "csv": 0.1504,
+        "att": 0.1701,
+        "score_h": 0.1759
+      }
+    ],
+    "thumbnail_intensity": 0.3563,
+    "status": "success",
+    "runtime": 67.09
+  },
+  {
+    "video_id": "2bUTxSPyCzo",
+    "title": "Hide and Seek in One Color with Oliver and Friends",
+    "true_label": "Overstimulating",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.3323,
+    "score_h": 0.2182,
+    "score_final": 0.2638,
+    "nb_confidence": 0.4083,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.15,
+        "csv": 0.1739,
+        "att": 0.1565,
+        "score_h": 0.1405
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.225,
+        "csv": 0.3041,
+        "att": 0.1586,
+        "score_h": 0.1944
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.225,
+        "csv": 0.2209,
+        "att": 0.1624,
+        "score_h": 0.1831
+      }
+    ],
+    "thumbnail_intensity": 0.4327,
+    "status": "success",
+    "runtime": 21.9
+  },
+  {
+    "video_id": "yeVTvh9HU8s",
+    "title": "Blippi Meets Dr. Ted the Puppy at the Hospital \ud83d\udc36",
+    "true_label": "Overstimulating",
+    "pred_label": "Neutral",
+    "score_nb": 0.2434,
+    "score_h": 0.1435,
+    "score_final": 0.1835,
+    "nb_confidence": 0.5925,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.05,
+        "csv": 0.1104,
+        "att": 0.2195,
+        "score_h": 0.1049
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1,
+        "csv": 0.1447,
+        "att": 0.1993,
+        "score_h": 0.1265
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.025,
+        "csv": 0.0571,
+        "att": 0.2039,
+        "score_h": 0.081
+      }
+    ],
+    "thumbnail_intensity": 0.2965,
+    "status": "success",
+    "runtime": 41.85
+  },
+  {
+    "video_id": "Be4j6lJpFTQ",
+    "title": "Counting to 20 Song For Kids | Learn To Count From 1-20 | Pre-K - Kindergarten",
+    "true_label": "Educational",
+    "pred_label": "Neutral",
+    "score_nb": 0.1898,
+    "score_h": 0.1766,
+    "score_final": 0.1819,
+    "nb_confidence": 0.6975,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.1818,
+        "csv": 0.1393,
+        "att": 0.1851,
+        "score_h": 0.1582
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.1136,
+        "csv": 0.0975,
+        "att": 0.1559,
+        "score_h": 0.1125
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0909,
+        "csv": 0.1053,
+        "att": 0.1667,
+        "score_h": 0.1067
+      }
+    ],
+    "thumbnail_intensity": 0.3423,
+    "status": "success",
+    "runtime": 10.42
+  },
+  {
+    "video_id": "aBAOUEVdNJA",
+    "title": "those school days... \ud83d\ude2d\ud83c\udf37 #shorts #aesthetic #school #youtubeshorts #trending #bts",
+    "true_label": "Neutral",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.4698,
+    "score_h": 0.1517,
+    "score_final": 0.2789,
+    "nb_confidence": 0.4698,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.15,
+        "csv": 0.1985,
+        "att": 0.1358,
+        "score_h": 0.138
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.15,
+        "csv": 0.1985,
+        "att": 0.1358,
+        "score_h": 0.138
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.15,
+        "csv": 0.1985,
+        "att": 0.1358,
+        "score_h": 0.138
+      }
+    ],
+    "thumbnail_intensity": 0.2754,
+    "status": "success",
+    "runtime": 8.19
+  },
+  {
+    "video_id": "GKLRkTA64N0",
+    "title": "Numbers Silly Song",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.3186,
+    "score_h": 0.0942,
+    "score_final": 0.1279,
+    "nb_confidence": 0.3771,
+    "effective_alpha": 0.15,
+    "h_overridden": true,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0,
+        "csv": 0.0002,
+        "att": 0.2271,
+        "score_h": 0.0682
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0,
+        "csv": 0.0002,
+        "att": 0.2357,
+        "score_h": 0.0707
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0,
+        "csv": 0.0002,
+        "att": 0.2451,
+        "score_h": 0.0736
+      }
+    ],
+    "thumbnail_intensity": 0.2798,
+    "status": "success",
+    "runtime": 6.76
+  },
+  {
+    "video_id": "kDdg2M1_EuE",
+    "title": "The Alphabet Is So Much Fun | Kids Songs | Super Simple Songs",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.171,
+    "score_h": 0.1115,
+    "score_final": 0.1353,
+    "nb_confidence": 0.5656,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.05,
+        "csv": 0.0874,
+        "att": 0.1427,
+        "score_h": 0.0784
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0,
+        "csv": 0.0054,
+        "att": 0.1549,
+        "score_h": 0.0473
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.05,
+        "csv": 0.0868,
+        "att": 0.1524,
+        "score_h": 0.0812
+      }
+    ],
+    "thumbnail_intensity": 0.384,
+    "status": "success",
+    "runtime": 6.16
+  },
+  {
+    "video_id": "1szs8RMlhN8",
+    "title": "1 carrot with 1 egg! your kids will be asking for this for breakfast everyday",
+    "true_label": "Neutral",
+    "pred_label": "Overstimulating",
+    "score_nb": 0.4187,
+    "score_h": 0.1767,
+    "score_final": 0.2735,
+    "nb_confidence": 0.4359,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0909,
+        "csv": 0.2185,
+        "att": 0.1427,
+        "score_h": 0.1165
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0909,
+        "csv": 0.2029,
+        "att": 0.1503,
+        "score_h": 0.1164
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.1818,
+        "csv": 0.2238,
+        "att": 0.152,
+        "score_h": 0.161
+      }
+    ],
+    "thumbnail_intensity": 0.318,
+    "status": "success",
+    "runtime": 16.07
+  },
+  {
+    "video_id": "g2jdZ46nK-M",
+    "title": "Shapes Song For Kids-Circle, Triangle, Square, Heart | Toddlers, Preschool",
+    "true_label": "Educational",
+    "pred_label": "Educational",
+    "score_nb": 0.1686,
+    "score_h": 0.1587,
+    "score_final": 0.1627,
+    "nb_confidence": 0.6155,
+    "effective_alpha": 0.4,
+    "h_overridden": false,
+    "sample_path": "success",
+    "segments": [
+      {
+        "segment_id": "S1",
+        "fcr": 0.0682,
+        "csv": 0.3894,
+        "att": 0.1636,
+        "score_h": 0.1382
+      },
+      {
+        "segment_id": "S2",
+        "fcr": 0.0909,
+        "csv": 0.311,
+        "att": 0.1513,
+        "score_h": 0.1329
+      },
+      {
+        "segment_id": "S3",
+        "fcr": 0.0682,
+        "csv": 0.41,
+        "att": 0.1656,
+        "score_h": 0.1419
+      }
+    ],
+    "thumbnail_intensity": 0.3096,
+    "status": "success",
+    "runtime": 7.5
+  }
+]

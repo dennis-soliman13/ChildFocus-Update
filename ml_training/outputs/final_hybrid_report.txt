@@ -1,32 +1,52 @@
-ChildFocus — Final Hybrid Evaluation Report (v3 — Confidence-Gated)
-Generated: 2026-04-04 07:39:26.079980
+ChildFocus — Final Hybrid Evaluation Report (v3.1 — Honest Hold-Out)
+Generated: 2026-04-04 22:15:28.871841
 
-BEST CONFIGURATION
-  Base alpha (high-conf NB weight) : 0.4
+EVALUATION METHODOLOGY
+  Total videos       : 30
+  Calibration set    : 20  (grid search / threshold tuning)
+  Test set           : 10  (held out — never seen during search)
+  Split seed         : 42  (fixed — reproducible)
+
+BEST CONFIGURATION  (found on calibration set)
+  Base alpha (high-conf NB weight) : 0.6
   Low  alpha (low-conf  NB weight) : 0.15
   Confidence threshold             : 0.4
   H-score override threshold       : 0.1
-  Block threshold                  : >= 0.2
-  Allow threshold                  : <= 0.18
+  Block threshold                  : >= 0.19
+  Allow threshold                  : <= 0.17
 
-PERFORMANCE METRICS
-  Accuracy : 0.6000
-  Precision: 0.6138
-  Recall   : 0.6000
-  F1-Score : 0.5937
+TEST SET PERFORMANCE  (primary / honest metric)
+  Accuracy : 0.5200
+  Precision: 0.5473
+  Recall   : 0.5200
+  F1-Score : 0.5037
 
                  precision    recall  f1-score   support
 
-    Educational     0.5556    0.5000    0.5263        10
-        Neutral     0.7143    0.5000    0.5882        10
-Overstimulating     0.5714    0.8000    0.6667        10
+    Educational     0.7000    0.7000    0.7000        10
+        Neutral     0.5000    0.2222    0.3077         9
+Overstimulating     0.3636    0.6667    0.4706         6
 
-       accuracy                         0.6000        30
-      macro avg     0.6138    0.6000    0.5937        30
-   weighted avg     0.6138    0.6000    0.5937        30
+       accuracy                         0.5200        25
+      macro avg     0.5212    0.5296    0.4928        25
+   weighted avg     0.5473    0.5200    0.5037        25
 
-CONFUSION MATRIX
+CALIBRATION SET PERFORMANCE  (reference only — used for tuning)
+  Accuracy : 0.7000
+  F1-Score : 0.6800
+
+                 precision    recall  f1-score   support
+
+    Educational     0.6667    0.4000    0.5000         5
+        Neutral     0.5000    0.5000    0.5000         6
+Overstimulating     0.8182    1.0000    0.9000         9
+
+       accuracy                         0.7000        20
+      macro avg     0.6616    0.6333    0.6333        20
+   weighted avg     0.6848    0.7000    0.6800        20
+
+CONFUSION MATRIX — TEST SET
                            Educa       Neutr       Overs
-         Educational           5           2           3
-             Neutral           2           5           3
-     Overstimulating           2           0           8
+         Educational           7           2           1
+             Neutral           1           2           6
+     Overstimulating           2           0           4

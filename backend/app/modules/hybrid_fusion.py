@@ -33,7 +33,7 @@ v3 update — Confidence-Gated Alpha + H-Score Override:
      signal.
 
   2. H-SCORE OVERRIDE
-     If Score_H < H_OVERRIDE_THRESH (0.10), the video cannot realistically
+     If Score_H < H_OVERRIDE (0.10), the video cannot realistically
      be Overstimulating regardless of Score_NB.  Empirical basis: no
      confirmed Overstimulating video in the 30-video evaluation set had
      Score_H < 0.129.  A score below 0.10 indicates slow pacing, low audio
@@ -72,7 +72,8 @@ CONF_THRESH  = 0.40   # confidence boundary for switching alpha
 # Empirical basis: minimum Score_H for any confirmed Overstimulating video
 # in the 30-video evaluation is 0.129.  A ceiling of 0.10 provides a safe
 # margin and never incorrectly suppresses a true Overstimulating result.
-H_OVERRIDE_THRESH = 0.10
+H_OVERRIDE        = 0.10
+H_OVERRIDE_THRESH = H_OVERRIDE   # backward-compat alias — do not remove
 
 # ── Thresholds (empirically recalibrated — v3) ────────────────────────────────
 THRESHOLD_BLOCK = 0.20   # Score_final >= 0.20 → Overstimulating
@@ -101,7 +102,7 @@ def _oir_label(score: float, score_h: float) -> str:
     H-override: if the heuristic indicates very slow pacing (Score_H < 0.10),
     the content cannot be Overstimulating even if Score_NB is high.
     """
-    if H_OVERRIDE_THRESH > 0 and score_h < H_OVERRIDE_THRESH:
+    if H_OVERRIDE > 0 and score_h < H_OVERRIDE:
         # Heuristic override — treat as non-Overstimulating
         return "Educational" if score <= THRESHOLD_ALLOW else "Neutral"
     if score >= THRESHOLD_BLOCK:
@@ -180,7 +181,7 @@ def classify_full(
          eff_alpha = LOW_ALPHA  if nb_confidence < CONF_THRESH
                    = BASE_ALPHA otherwise
     4. Fuse: Score_final = (eff_alpha × NB) + ((1 − eff_alpha) × H)
-    5. Apply H-override: if Score_H < H_OVERRIDE_THRESH → non-Overstimulating
+    5. Apply H-override: if Score_H < H_OVERRIDE → non-Overstimulating
     6. Return final OIR label + system action
     """
     t_start = time.time()
@@ -220,9 +221,9 @@ def classify_full(
         print(f"[FUSION] Score_final = ({eff_alpha} × {score_nb}) + ({round(1-eff_alpha,2)} × {score_h}) = {score_final}")
 
     # ── Step 5: H-override + OIR label ────────────────────────────────────────
-    h_overridden = H_OVERRIDE_THRESH > 0 and score_h < H_OVERRIDE_THRESH
+    h_overridden = H_OVERRIDE > 0 and score_h < H_OVERRIDE
     if h_overridden:
-        print(f"[FUSION] ⚠ H-override triggered (Score_H={score_h} < {H_OVERRIDE_THRESH}): "
+        print(f"[FUSION] ⚠ H-override triggered (Score_H={score_h} < {H_OVERRIDE}): "
               f"cannot be Overstimulating")
 
     oir_label = _oir_label(score_final, score_h)
@@ -242,13 +243,14 @@ def classify_full(
         "score_h":     score_h,
         "score_final": score_final,
 
-        # Fusion config used
-        "fusion_config": {
-            "base_alpha":        BASE_ALPHA,
-            "low_alpha":         LOW_ALPHA,
+        # Fusion config used for this specific call
+        "fusion_weights": {
+            "version":           "v3-confidence-gated",
+            "base_alpha_nb":     BASE_ALPHA,
+            "low_alpha_nb":      LOW_ALPHA,
             "conf_thresh":       CONF_THRESH,
+            "h_override":        H_OVERRIDE,
             "effective_alpha":   _effective_alpha(nb_confidence),
-            "h_override_thresh": H_OVERRIDE_THRESH,
             "h_overridden":      h_overridden,
         },
 
@@ -283,12 +285,14 @@ def classify_full(
 def get_fusion_config() -> dict:
     """Return the current fusion configuration for API transparency."""
     return {
-        "base_alpha":        BASE_ALPHA,
-        "low_alpha":         LOW_ALPHA,
+        "version":           "v3-confidence-gated",
+        "base_alpha_nb":     BASE_ALPHA,
+        "low_alpha_nb":      LOW_ALPHA,
         "conf_thresh":       CONF_THRESH,
-        "h_override_thresh": H_OVERRIDE_THRESH,
+        "h_override":        H_OVERRIDE,
         "threshold_block":   THRESHOLD_BLOCK,
         "threshold_allow":   THRESHOLD_ALLOW,
+        "neutral_range":     f"{THRESHOLD_ALLOW} < score < {THRESHOLD_BLOCK}",
         "oir_labels":        ["Educational", "Neutral", "Overstimulating"],
         "actions": {
             "Overstimulating": "block",
