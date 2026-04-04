@@ -1,5 +1,5 @@
 ChildFocus — Clean Hybrid Evaluation Report  (v3 — test_clean only)
-Generated  : 2026-04-04 22:12:10.709441
+Generated  : 2026-04-04 23:37:29.602227
 Source     : test_clean.csv (NB held-out split, no contamination)
 Fusion     : base_alpha=0.4, low_alpha=0.15, conf_thresh=0.4, H_override=0.1
 Thresholds : Block >= 0.2 | Allow <= 0.18

@@ -1,0 +1,242 @@
+ChildFocus — Clean Hybrid Evaluation Report  (v3 — test_clean only)
+Generated  : 2026-04-05 00:25:52.932527
+Source     : test_clean.csv (NB held-out split, no contamination)
+Fusion     : base_alpha=0.4, low_alpha=0.15, conf_thresh=0.4, H_override=0.07
+Thresholds : Block >= 0.2 | Allow <= 0.18
+=================================================================
+
+CLASSIFICATION REPORT
+                 precision    recall  f1-score   support
+
+    Educational     0.5926    0.6957    0.6400        69
+        Neutral     0.4400    0.1571    0.2316        70
+Overstimulating     0.5728    0.8429    0.6821        70
+
+       accuracy                         0.5646       209
+      macro avg     0.5351    0.5652    0.5179       209
+   weighted avg     0.5349    0.5646    0.5173       209
+
+Accuracy  : 0.5646
+Precision : 0.5349
+Recall    : 0.5646
+F1-Score  : 0.5173
+
+CONFUSION MATRIX
+                           Educa       Neutr       Overs
+         Educational          48           8          13
+             Neutral          28          11          31
+     Overstimulating           5           6          59
+
+PER-VIDEO RESULTS
+----------------------------------------------------------------------------------------------------
+    video_id       true_label             pred     NB  conf  effA      H   Final   path  title
+----------------------------------------------------------------------------------------------------
+ gBUuQwN-0TM          Neutral  Overstimulating  0.243  0.57  0.40  0.199  0.2165 success [XX] 🐭 Learn to Draw a Cute Mouse Step by S
+ GJuO4MzYrtI      Educational      Educational  0.148  0.77  0.40  0.169  0.1607 success [OK] Thank You Teachers! | SciShow Kids
+ hNFppd7L0Bg  Overstimulating      Educational  0.391  0.39  0.15  0.068  0.1166 success [XX] OMG CAPCUT HAS SMOOTH VELOCITY 😮!?! ||
+ aMGQtiQUdkA  Overstimulating  Overstimulating  0.261  0.41  0.40  0.183  0.2144 success [OK] Baby Shark - Best Kids Dance Version
+ kDdg2M1_EuE      Educational      Educational  0.171  0.57  0.40  0.112  0.1353 success [OK] The Alphabet Is So Much Fun | Kids Son
+ _fsjQXoqFtM          Neutral  Overstimulating  0.272  0.41  0.40  0.181  0.2176 success [XX] Precious Plant GOES TO THE BIN! | Mr B
+ yc0GQ0tL0FE      Educational      Educational  0.156  0.57  0.40  0.185  0.1737 success [OK] ABC Song for Babies &amp; Kids 🎤 | Lea
+ mXMofxtDPUQ      Educational      Educational  0.236  0.54  0.40  0.101  0.1552 success [OK] Days of the Week Song | The Singing Wa
+ PVFNfmoH6pg          Neutral          Neutral  0.245  0.58  0.40  0.158  0.1930 success [OK] How To Draw A Cute Husky With A Backpa
+ DvpQHdQFJdE          Neutral          Neutral  0.351  0.39  0.15  0.153  0.1828 success [OK] Study vlog 📚 ˙✧˖° #study #studymotivat
+ VVgu67WS0DI          Neutral      Educational  0.109  0.80  0.40  0.205  0.1668 success [XX] The Seven Little Goats and The Wounded
+ RM485oUuOhg          Neutral          Neutral  0.242  0.52  0.40  0.154  0.1894 success [OK] Switzerland: The Land of Pure Nature
+ J5hKPShTi3E          Neutral          Neutral  0.227  0.61  0.40  0.175  0.1961 success [OK] 4 Ways To Get Organized
+ UiFjZcOrMO0      Educational          Neutral  0.146  0.58  0.40  0.211  0.1848 success [XX] Kaboochi | Dance Song For Kids | Baby 
+ MG10BPnR53k  Overstimulating  Overstimulating  0.309  0.48  0.40  0.210  0.2493 success [OK] Who Is Eating Sugar Secretly? 🍬🤫 #Shor
+ R0vgSne0jE8  Overstimulating  Overstimulating  0.281  0.63  0.40  0.174  0.2171 success [OK] Shapes are EVERYWHERE #shorts
+ PyOmuhdibVM          Neutral  Overstimulating  0.404  0.40  0.40  0.153  0.2535 success [XX] Nightly Routine #cleaning #apartment #
+ lWhqORImND0      Educational      Educational  0.189  0.48  0.40  0.160  0.1717 success [OK] Old MacDonald Had A Farm + More | Kids
+ 0W86K1jBJFI          Neutral      Educational  0.075  0.87  0.40  0.156  0.1235 success [XX] Little Red Riding Hood - Animated Fair
+ 2bUTxSPyCzo  Overstimulating  Overstimulating  0.332  0.41  0.40  0.218  0.2638 success [OK] Hide and Seek in One Color with Oliver
+ UpDPJICdhhg      Educational  Overstimulating  0.244  0.55  0.40  0.177  0.2037 success [XX] 6.6 LogicLike - Educational games
+ q2PglyGrHqc  Overstimulating  Overstimulating  0.769  0.77  0.40  0.088  0.3602 success [OK] Baby Shark doo doo doo #shorts #underw
+ 0LnhNC_wHY8  Overstimulating  Overstimulating  0.424  0.42  0.40  0.203  0.2915 success [OK] Rain, Rain, Go Away Nursery Rhyme in 4
+ _OcW8ZHGZr8      Educational      Educational  0.177  0.65  0.40  0.139  0.1539 success [OK] Back To School Reading for Kids 📚 | Le
+ G8nuZu0VDp4      Educational      Educational  0.166  0.71  0.40  0.180  0.1746 success [OK] 5 Minute Stories Book Read-Along 📚 | A
+ LDD6hX0lpj8          Neutral      Educational  0.285  0.37  0.15  0.138  0.1598 success [XX] aesthetic morning routine 🌸 #aesthetic
+ viurF6fz9Xg  Overstimulating  Overstimulating  0.346  0.41  0.40  0.194  0.2549 success [OK] $1 VS $1,000,000 99 NIGHTS IN THE FORE
+ 49df3lEIYyg  Overstimulating          Neutral  0.200  0.72  0.40  0.191  0.1946 success [XX] Baby Got a Boo Boo | Nursery Rhymes & 
+ 6QdwB7ZCyMA      Educational      Educational  0.134  0.79  0.40  0.137  0.1357 success [OK] @Numberblocks- Meet Number Nine | Lear
+ daL2STCfFHw  Overstimulating  Overstimulating  0.359  0.36  0.15  0.217  0.2384 success [OK] Building Our Family Island in Tomodach
+ xoamCzuQjy0      Educational      Educational  0.183  0.67  0.40  0.094  0.1295 success [OK] Colors Vocabulary Chant for Kindergart
+ c_NGdBIlu0M  Overstimulating  Overstimulating  0.569  0.57  0.40  0.145  0.3142 success [OK] aayu and pihu show 👦😍👩#shortvideo #aay
+ dmVNCtbcTdU  Overstimulating  Overstimulating  0.482  0.48  0.40  0.187  0.3050 success [OK] Hot Wheels Monster Trucks 1:6 XL MEGA-
+ l_SSeAMwCDw          Neutral      Educational  0.200  0.65  0.40  0.152  0.1710 success [XX] Very Easy! Fish Drawing For Kids || Ho
+ tisxrc_6zbE  Overstimulating  Overstimulating  0.476  0.48  0.40  0.243  0.3364 success [OK] Chris collects toys for his gaming roo
+ qJIYkbAgR8c  Overstimulating          Neutral  0.221  0.57  0.40  0.183  0.1981 success [XX] Yes Yes Vegetables | 🥕 The Hungry East
+ bt3ttH11QT8  Overstimulating          Neutral  0.381  0.39  0.15  0.159  0.1924 success [XX] Smashing a 34,000 Brick Statue
+ XOnHtStmbCI          Neutral  Overstimulating  0.439  0.44  0.40  0.200  0.2958 success [XX] Mickey and Donald Have a Farm 🚜 | S4 E
+ 6M3IrkyNNT8      Educational      Educational  0.135  0.78  0.40  0.166  0.1536 success [OK] @Numberblocks- Meet Number Five | Meet
+ LSfqhUKf0X0  Overstimulating  Overstimulating  0.378  0.38  0.15  0.206  0.2314 success [OK] Villains are taking over! We need YOUR
+ FXjC69MmcPY      Educational      Educational  0.164  0.58  0.40  0.141  0.1504 success [OK] 🌈🎵 Learn, Sing, and Explore! Preschool
+ gB1dNEkogYk      Educational      Educational  0.191  0.58  0.40  0.055  0.1092 success [OK] Certified BOP
+ 3JGOK5q5IMA          Neutral  Overstimulating  0.314  0.44  0.40  0.217  0.2560 success [XX] 3-Ingredient Nutella Cookies! Recipe t
+ 0j_AbvBOWZw  Overstimulating  Overstimulating  0.401  0.40  0.40  0.118  0.2314 success [OK] More Baby Seals for You (Part3)  | SEA
+ s0bS-SBAgJI          Neutral      Educational  0.153  0.73  0.40  0.103  0.1230 success [XX] The Water Cycle- How rain is formed-Le
+ hkz51Td9k5A          Neutral      Educational  0.004  0.99  0.40  0.181  0.1105 success [XX] Read Aloud Kids Book: It's A Firefly N
+ sOxloXyOAKA          Neutral      Educational  0.294  0.44  0.40  0.067  0.1581 success [XX] Nature View Cristal beach Beuti of nat
+ gDInVjBUGC0      Educational      Educational  0.280  0.39  0.15  0.057  0.0903 success [OK] ELS: Phase 3 pronunciation
+ AGYPvz9Dov8          Neutral      Educational  0.175  0.69  0.40  0.177  0.1760 success [XX] HIPPO VIDEOS FOR KIDS - Facts about Hi
+ r2bW4ySQr-4          Neutral          Neutral  0.376  0.42  0.40  0.066  0.1898 success [OK] Creative Art For Kids Chair 🪑🌈 #shorts
+ xw4BPniE2m4      Educational  Overstimulating  0.329  0.45  0.40  0.163  0.2297 success [XX] This Ruthless Spider Is the Master of 
+ fhPaQwEoGGM  Overstimulating  Overstimulating  0.299  0.45  0.40  0.193  0.2352 success [OK] Kids Trapped in Minecraft!
+ LpUzg3Dc-m0      Educational  Overstimulating  0.228  0.44  0.40  0.195  0.2083 success [XX] Never Take Seashells From Beaches, Her
+ rbVkRDOjMa8  Overstimulating          Neutral  0.195  0.63  0.40  0.186  0.1900 success [XX] Sunny Bunnies | Shiny Bright Bunny | C
+ qaRYVwND3SQ          Neutral      Educational  0.118  0.81  0.40  0.171  0.1495 success [XX] How to Blow Your Nose - Life Skills fo
+ 89QRrnnYPNw          Neutral  Overstimulating  0.278  0.53  0.40  0.205  0.2343 success [XX] How Do Plants Grow? | Knowsy Nina Want
+ fKigjAnJrjg      Educational      Educational  0.039  0.93  0.40  0.192  0.1309 success [OK] The Magic Magnet | Funny Stories | Saf
+ xfLYZeLV3go      Educational      Educational  0.054  0.91  0.40  0.183  0.1316 success [OK] The Egg&#39;s Adventure | Educational 
+ nk6QEJkNWHc          Neutral          Neutral  0.352  0.35  0.15  0.151  0.1814 success [OK] A day in my cottage life
+ GKLRkTA64N0      Educational      Educational  0.319  0.38  0.15  0.094  0.1279 success [OK] Numbers Silly Song
+ mepSmUC6HWM  Overstimulating  Overstimulating  0.382  0.38  0.15  0.224  0.2477 success [OK] Monsters Play Trash Basketball!
+ zdQfvoKNLhE  Overstimulating  Overstimulating  0.257  0.44  0.40  0.231  0.2416 success [OK] Oh! Hero Piggy Saved the Little Lamb! 
+ rtAwdYTjNhY      Educational      Educational  0.155  0.59  0.40  0.131  0.1407 success [OK] Quick Quiz! Who's Larger? Male or Fema
+ C4l7rfjX49I          Neutral  Overstimulating  0.371  0.41  0.40  0.098  0.2074 success [XX] Who won? #shorts #family
+ k14YDC1Kn-o          Neutral      Educational  0.128  0.80  0.40  0.169  0.1524 success [XX] The Lion and The Mouse | Fairy Tales |
+ IzkmfRTktWc      Educational      Educational  0.286  0.49  0.40  0.087  0.1667 success [OK] Building Squares from Odd Numbers 1: N
+ I_4Xw57Lt-k  Overstimulating  Overstimulating  0.352  0.43  0.40  0.185  0.2522 success [OK] Kids Cars Adventures Compilation
+ OtalQpNt2UQ      Educational  Overstimulating  0.241  0.66  0.40  0.184  0.2071 success [XX] Dora & Boots Go On a Puppy Adventure! 
+ aBAOUEVdNJA          Neutral  Overstimulating  0.470  0.47  0.40  0.152  0.2789 success [XX] those school days... 😭🌷 #shorts #aesth
+ nkqet4ca25A          Neutral      Educational  0.308  0.39  0.15  0.155  0.1780 success [XX] REALITY vs SLOW MO! 🎥
+ 7SWvlUd2at8          Neutral      Educational  0.230  0.65  0.40  0.086  0.1435 success [XX] 10 Easy Animal Drawings for Kids Vol. 
+ VdzzE20zQC8      Educational      Educational  0.152  0.67  0.40  0.144  0.1472 success [OK] The Shapes Song | Nursery Rhymes | Nur
+ q795N2khTXk  Overstimulating      Educational  0.376  0.38  0.15  0.132  0.1685 success [XX] Would You Let Your Kids Play These Gam
+ Rw3NxD-p8_U  Overstimulating  Overstimulating  0.286  0.47  0.40  0.183  0.2242 success [OK] Possible 1x1x1x1?? recent "hacking/exp
+ yTXtTX3t8fM      Educational          Neutral  0.244  0.55  0.40  0.145  0.1845 success [XX] 9.1 LogicLike - Educational games
+ qRDSgx5PF9g          Neutral  Overstimulating  0.462  0.46  0.40  0.174  0.2890 success [XX] Pictures that relieve anxiety! #shorts
+ R_CD6ellkyk          Neutral      Educational  0.262  0.47  0.40  0.056  0.1386 success [XX] Relaxing Video of a Sunrise Beach #sho
+ QsoRCSnhsQo      Educational      Educational  0.064  0.91  0.40  0.154  0.1179 success [OK] Return Little Crocodile Home | Safety 
+ MvXOhpSuTx4  Overstimulating  Overstimulating  0.269  0.41  0.40  0.196  0.2252 success [OK] Shoo Be Doo Birthday🥳🎈#birthday #birth
+ 9w9GlT4Zyl8          Neutral  Overstimulating  0.274  0.51  0.40  0.165  0.2087 success [XX] Wall&#39;s 3 in 1 Ice Cream 🍦 Perfect 
+ AS2gsXyn4ts  Overstimulating  Overstimulating  0.435  0.44  0.40  0.175  0.2794 success [OK] A Cute Zombie's Message Just for You! 
+ BfodhLizt_A  Overstimulating  Overstimulating  0.713  0.71  0.40  0.191  0.3999 success [OK] Unboxing Disney Cars Tomica Race in Dr
+ 0JDCViWGn-0          Neutral  Overstimulating  0.251  0.50  0.40  0.184  0.2109 success [XX] Human Body Systems Overview (Updated 2
+ -PxShNDmIHw      Educational      Educational  0.111  0.79  0.40  0.083  0.0939 success [OK] Let's Spell Words ending in 'at'!  | L
+ _f1QbJm1irY          Neutral      Educational  0.049  0.92  0.40  0.168  0.1205 success [XX] The Smartest Giant in Town - Animated 
+ Ae4MadKPJC0          Neutral  Overstimulating  0.321  0.50  0.40  0.126  0.2043 success [XX] Human Body 101 | National Geographic
+ 36n93jvjkDs      Educational  Overstimulating  0.248  0.45  0.40  0.193  0.2146 success [XX] Days of The Week Song For Kids
+ 4DoO_Td6k8M  Overstimulating  Overstimulating  0.421  0.42  0.40  0.225  0.3033 success [OK] Behind Story of Pinkfong Baby Shark | 
+ _Dwbf5WjjJA  Overstimulating  Overstimulating  0.399  0.40  0.15  0.180  0.2126 success [OK] IMPOSTERS are PRANKING US! FULL MOVIE!
+ -G49u2y-0U4          Neutral  Overstimulating  0.515  0.51  0.40  0.084  0.2562 success [XX] Mom and Dad use girls as mops 😂😂 #shor
+ lmRmk2HrqYA          Neutral      Educational  0.313  0.38  0.15  0.001  0.0475 thumbnail_only [XX] Animal Showdown 🐻🐊🦅 | 25 Minutes | Nat
+ JhH-_QXzQ3o  Overstimulating      Educational  0.385  0.39  0.15  0.120  0.1596 success [XX] Baby Seal: Not Home Alone (Full Episod
+ v3BCkHGnKT4  Overstimulating  Overstimulating  0.433  0.43  0.40  0.187  0.2856 success [OK] Andrea Becomes Superheroes to Save the
+ 2K4o11uxhs0      Educational          Neutral  0.193  0.62  0.40  0.183  0.1868 success [XX] ABC Phonics Song + More Nursery Rhymes
+ bWAIgN_DTxo      Educational      Educational  0.126  0.80  0.40  0.091  0.1047 success [OK] Everything You Need to Know About K2-1
+ MmgFk1oL9a8          Neutral      Educational  0.288  0.47  0.40  0.084  0.1657 success [XX] 🥹how beautiful is this 😍#viral #sky #a
+ K0GujQE6Jqc      Educational      Educational  0.118  0.71  0.40  0.168  0.1477 success [OK] ABC Phonics Song - A for Apple + More 
+ CUBciV4iPzs          Neutral  Overstimulating  0.238  0.68  0.40  0.175  0.2003 success [XX] Baking With Blippi | Food Videos For K
+ U9Q7Y3t4m3g      Educational          Neutral  0.280  0.52  0.40  0.121  0.1847 success [XX] Good Morning Song For Children | Learn
+ 0GAhHaK4y58      Educational      Educational  0.092  0.86  0.40  0.171  0.1394 success [OK] Blippi Meets TALKING PLANETS! | Blippi
+ mDzIA3VUFKI  Overstimulating      Educational  0.319  0.40  0.15  0.138  0.1653 success [XX] Lunar New Year Dance 💃👯🏮 Talking Tom #
+ XSun4GUyhuY      Educational      Educational  0.032  0.95  0.40  0.136  0.0940 thumbnail_only [OK] Preschool Learning activities for 3 ye
+ QK_4HL1vK0o  Overstimulating  Overstimulating  0.426  0.43  0.40  0.227  0.3068 success [OK] Escaping 100 Layers of CANDY Challenge
+ 3CfvBCAPZyE      Educational      Educational  0.143  0.80  0.40  0.183  0.1670 success [OK] Ms. Rachel Counts to 10 with Blippi an
+ tSEhQO0zlGQ          Neutral  Overstimulating  0.447  0.45  0.40  0.186  0.2903 success [XX] Thomas the Rescue Engine | Cartoon Com
+ Mbc29yUtIxs          Neutral  Overstimulating  0.442  0.44  0.40  0.207  0.3013 success [XX] Microwave Meals: Lava Cake!
+ 1szs8RMlhN8          Neutral  Overstimulating  0.419  0.44  0.40  0.177  0.2735 success [XX] 1 carrot with 1 egg! your kids will be
+ y8kneKeNyCI          Neutral          Neutral  0.194  0.65  0.40  0.188  0.1902 success [OK] Belly Button Song Dance! Learn about t
+ NQOD8oBfZjs          Neutral  Overstimulating  0.332  0.45  0.40  0.169  0.2338 success [XX] A Day In The Life Of Serengeti Animals
+ g2jdZ46nK-M      Educational      Educational  0.169  0.62  0.40  0.159  0.1627 success [OK] Shapes Song For Kids-Circle, Triangle,
+ fTYhA_j6cUw  Overstimulating  Overstimulating  0.435  0.43  0.40  0.148  0.2629 success [OK] Water Safety Song | Run Away from Shar
+ X0SpQyIHVXQ      Educational          Neutral  0.314  0.36  0.15  0.169  0.1906 success [XX] What is in the fridge? 🐧
+ zTmjQz198f0  Overstimulating  Overstimulating  0.291  0.52  0.40  0.156  0.2099 success [OK] Fish 123 | Ten Little Fish | Learn wit
+ YSA2f19ABPk  Overstimulating  Overstimulating  0.344  0.43  0.40  0.195  0.2543 success [OK] Chris and friends in Magic Escape Adve
+ aJxxbI9HIRU  Overstimulating  Overstimulating  0.387  0.40  0.15  0.201  0.2285 success [OK] Baby Shark - Sing and Dance - Part4 #S
+ bjRpNYq8Ts0          Neutral          Neutral  0.352  0.35  0.15  0.157  0.1863 success [OK] Exploring the Adorable World of Baby A
+ THYU9WgZD_Y  Overstimulating  Overstimulating  0.354  0.36  0.15  0.208  0.2295 success [OK] This is going to be AWESOME! #ninjakid
+ hV5eWushhbQ  Overstimulating      Educational  0.153  0.59  0.40  0.134  0.1419 success [XX] 3 Skeletons Were Riding On A Bus - Cra
+ ao2IP7f23-8          Neutral      Educational  0.177  0.70  0.40  0.135  0.1519 success [XX] How To Draw A Hibiscus Flower 🌺
+ vInTXlOIRzQ          Neutral      Educational  0.265  0.59  0.40  0.102  0.1671 success [XX] How To Draw Cinnamoroll From Hello Kit
+ RjpRL6tv3Cw          Neutral      Educational  0.385  0.39  0.15  0.110  0.1515 success [XX] Bluey and Bingo Pretend to be Dinosaur
+ KGD1TJ_XjbI          Neutral  Overstimulating  0.264  0.42  0.40  0.204  0.2282 success [XX] Korean Cheesy Potato Pancake (4 Ingred
+ WhhPGrWxWsI      Educational      Educational  0.088  0.85  0.40  0.201  0.1558 success [OK] Harbour Learning | Sea Animal Names fo
+ 4HGwX5b44Yc  Overstimulating  Overstimulating  0.473  0.47  0.40  0.214  0.3174 success [OK] Superheroes Teamwork Adventures for ki
+ SNF8b7KKJ2I          Neutral      Educational  0.196  0.69  0.40  0.127  0.1546 success [XX] Ecosystems for Kids | Plants, Animals,
+ oY-H2WGThc8          Neutral          Neutral  0.197  0.49  0.40  0.170  0.1808 success [OK] Clean Up Song for Children - by ELF Le
+ qCs0pm_D_hM  Overstimulating  Overstimulating  0.743  0.74  0.40  0.166  0.3969 success [OK] Colors for Children | Toy Trains - Col
+ IPr_Ay-7aT0      Educational      Educational  0.122  0.69  0.40  0.102  0.1100 success [OK] The Phonics Song + More Preschool Lear
+ 7aKsPwH1iss          Neutral  Overstimulating  0.418  0.42  0.40  0.073  0.2110 success [XX] beautiful sunset video #shorts #love #
+ 1nJ5VbyD6tY      Educational      Educational  0.118  0.72  0.40  0.153  0.1389 success [OK] 2D Shapes Song
+ qqwRkhwrJek          Neutral      Educational  0.135  0.66  0.40  0.203  0.1756 success [XX] Jingle Bells,  Christmas Song, Nursery
+ D5XMzXizUKA  Overstimulating  Overstimulating  0.793  0.79  0.40  0.161  0.4139 success [OK] 60 Minutes Ultimate Cooking Toys Plays
+ UvVKtqlxJq8  Overstimulating  Overstimulating  0.230  0.56  0.40  0.187  0.2042 success [OK] Try NOT To Laugh: Silly Jokes For Kids
+ xgJjg4HSo4A          Neutral          Neutral  0.216  0.67  0.40  0.174  0.1905 success [OK] Organize – Teach Kids to Stay Tidy and
+ PL7vHFGRViA  Overstimulating  Overstimulating  0.836  0.84  0.40  0.189  0.4477 success [OK] Satisfying with Unboxing & Review Mini
+ 2jMyZ0OZan8          Neutral      Educational  0.188  0.73  0.40  0.165  0.1739 success [XX] How To Draw The Cutest Fish Using Just
+ zZz91aicTuU  Overstimulating  Overstimulating  0.535  0.54  0.40  0.179  0.3219 success [OK] Power Rangers Ninja Kidz Battle with H
+ WkbfeCays4w  Overstimulating  Overstimulating  0.358  0.38  0.15  0.192  0.2171 success [OK] Baby Shark Sing and Dance Song Compila
+ 0n_J2z-ILXo      Educational      Educational  0.164  0.56  0.40  0.142  0.1512 success [OK] Humpty Dumpty | + More Kids Songs | Su
+ geyzFEhOu_s  Overstimulating  Overstimulating  0.222  0.59  0.40  0.207  0.2127 success [OK] Rich Princess Treats the Prince 👑
+ NkY57mizvMI      Educational          Neutral  0.254  0.39  0.15  0.167  0.1802 success [XX] 🐯 Meet TINKER! 🐯 | Your Favorite Farm 
+ b2sjCyAsFbM      Educational      Educational  0.197  0.68  0.40  0.163  0.1769 success [OK] Peter Rabbit - Camping by the Lake | C
+ vXkY5wIWu18  Overstimulating  Overstimulating  0.256  0.55  0.40  0.179  0.2099 success [OK] Kaden Eva & Emma Jump in a Hole! Fun R
+ 9M4JWcKEdL0      Educational      Educational  0.295  0.39  0.15  0.094  0.1238 success [OK] Three Space Weather Missions Lift Off
+ cixocSycC3A  Overstimulating  Overstimulating  0.280  0.52  0.40  0.155  0.2046 success [OK] So Satisfying 😳
+ eg2mr1IticM  Overstimulating  Overstimulating  0.510  0.51  0.40  0.158  0.2989 success [OK] EASTER EGG ASMR! 🐣💚🩷🩵 #asmr #asmrsound
+ e2JMt_YJveM          Neutral      Educational  0.179  0.71  0.40  0.157  0.1662 success [XX] What are clouds? ☁☁ How are they forme
+ 1y8MZvPhCKE      Educational      Educational  0.121  0.73  0.40  0.121  0.1213 success [OK] The Best of Alphablock O  | Learn to R
+ Kx241A5WsDI  Overstimulating  Overstimulating  0.270  0.57  0.40  0.190  0.2220 success [OK] Blippi & Yellowcard GO GO GO on a Worl
+ eclBbnyOsYA          Neutral      Educational  0.151  0.51  0.40  0.165  0.1597 success [XX] Learn Letters! - ABC Undersea Song! +M
+ ki5wRkJWPP8  Overstimulating  Overstimulating  0.349  0.35  0.15  0.201  0.2235 success [OK] Vlad plays with magic masks
+ CGSJCE0Rqnw      Educational      Educational  0.096  0.84  0.40  0.178  0.1452 success [OK] Is laughter ACTUALLY the best medicine
+ pr5U8x-kCMM  Overstimulating  Overstimulating  0.435  0.43  0.40  0.167  0.2741 success [OK] LARVA - RAINING | Larva 2017 | Cartoon
+ ozsgl_sLnHQ      Educational      Educational  0.059  0.88  0.40  0.226  0.1592 success [OK] Learn About Emotions and Feelings with
+ qoXM4iykEz8          Neutral  Overstimulating  0.289  0.50  0.40  0.180  0.2240 success [XX] How to Get a Good Night's Sleep - Heal
+ gbsgbcd_-2U          Neutral  Overstimulating  0.272  0.49  0.40  0.171  0.2114 success [XX] PAW Patrol Rescue Wheels Adventures! #
+ -gajDGMq7Lg  Overstimulating  Overstimulating  0.435  0.43  0.40  0.186  0.2857 success [OK] When a girl gets you angry 😂 #roblox #
+ Oyu80bhbrNk      Educational      Educational  0.174  0.62  0.40  0.143  0.1555 success [OK] Screen Time That Earns Its Place
+ KyBYuEgvFl0  Overstimulating  Overstimulating  0.542  0.54  0.40  0.168  0.3177 success [OK] Baby Car | Car Songs | Pinkfong Songs 
+ mJaxCjNJDww      Educational      Educational  0.137  0.79  0.40  0.174  0.1593 success [OK] Learning Videos for Toddlers | Countin
+ KsaGjQDxjJQ  Overstimulating  Overstimulating  0.578  0.58  0.40  0.216  0.3607 success [OK] 30 Minutes Satisfying with Unboxing Pe
+ ws_D5nXOAJg          Neutral  Overstimulating  0.459  0.46  0.40  0.120  0.2556 success [XX] The Stunning Life Cycle Of A Ladybug |
+ Ov-KDfyUR0A  Overstimulating  Overstimulating  0.372  0.37  0.15  0.236  0.2561 success [OK] Vlad and Niki build a construction kit
+ CYEyoUUfA8A      Educational      Educational  0.213  0.60  0.40  0.129  0.1626 success [OK] Routines That Build More Than Content 
+ FjtyU_KNits      Educational          Neutral  0.246  0.46  0.40  0.164  0.1965 success [XX] Learn the Alphabet Sounds with Yakka D
+ _C-cxckDJX0          Neutral      Educational  0.365  0.36  0.15  0.140  0.1737 success [XX] morning routine #shorts
+ r1Hbzt_tjGg          Neutral          Neutral  0.219  0.61  0.40  0.180  0.1958 success [OK] Cute Rainbow Painting Hack for Kids! 🌈
+ fdm1_QInzfM          Neutral  Overstimulating  0.398  0.49  0.40  0.178  0.2660 success [XX] How To Draw An Emoji Folding Surprise 
+ ZY-NF22bKXY          Neutral  Overstimulating  0.231  0.50  0.40  0.183  0.2020 success [XX] Aesthetic Quiet Morning Study Vlog 🌿 |
+ Lvkf2bwch7w          Neutral      Educational  0.389  0.39  0.15  0.138  0.1752 success [XX] My morning routine #shorts
+ gV0w_wrU750  Overstimulating  Overstimulating  0.278  0.45  0.40  0.175  0.2164 success [OK] &quot;Baby Shark&quot; - The Parent Ja
+ 10OJhIc_-vw  Overstimulating  Overstimulating  0.421  0.42  0.40  0.185  0.2794 success [OK] Minecraft Speedrunner VS 6 Hunters REM
+ 23C5twKp72Q      Educational      Educational  0.271  0.55  0.40  0.106  0.1722 success [OK] Meet the Shapes | 'Rectangle' Dance | 
+ Me9Ex4QZnbU      Educational  Overstimulating  0.276  0.52  0.40  0.194  0.2266 success [XX] Wheels On The Bus story with Alice | N
+ EoRXcJRtKq4          Neutral      Educational  0.168  0.75  0.40  0.163  0.1647 success [XX] How to draw a cute girl easy | Step by
+ zHT2nY-Gq1I  Overstimulating          Neutral  0.185  0.65  0.40  0.209  0.1996 success [XX] Kids Learn About All Their Feelings at
+ r4MfjpBQCvQ      Educational  Overstimulating  0.322  0.49  0.40  0.155  0.2214 success [XX] The Shark is Coming+More | Yummy Foods
+ l5RrO6cYy_A          Neutral  Overstimulating  0.363  0.36  0.15  0.185  0.2121 success [XX] day in my life as a college student🎀
+ zugFjQ8tN3E  Overstimulating  Overstimulating  0.379  0.41  0.40  0.187  0.2639 success [OK] Eva Emma & Kaden Playground Germs! Let
+ yeVTvh9HU8s  Overstimulating          Neutral  0.243  0.59  0.40  0.143  0.1835 success [XX] Blippi Meets Dr. Ted the Puppy at the 
+ 3ZHYQ6f1BhU      Educational  Overstimulating  0.391  0.50  0.40  0.217  0.2868 success [XX] Cavities - The Dr. Binocs Show | Best 
+ quUlfkOyH0g          Neutral  Overstimulating  0.419  0.42  0.40  0.103  0.2294 success [XX] Duck Drawing | Drawing for kids | Smal
+ pfRuLS-Vnjs      Educational      Educational  0.159  0.56  0.40  0.123  0.1372 success [OK] The Shapes Song
+ s_hAnPdkBTI          Neutral  Overstimulating  0.308  0.43  0.40  0.131  0.2017 success [XX] How to wake up in the morning to study
+ MfIwF6QoRm4  Overstimulating  Overstimulating  0.478  0.48  0.40  0.192  0.3064 success [OK] Police Officer Visits Doctors | Boo Bo
+ Nx9rbyz3iDc          Neutral  Overstimulating  0.328  0.42  0.40  0.182  0.2405 success [XX] What really happens when we cover our 
+ 0VLxWIHRD4E      Educational      Educational  0.324  0.43  0.40  0.075  0.1743 success [OK] Let's Count to 20 Song For Kids
+ DS_PQYIGrTc          Neutral      Educational  0.283  0.54  0.40  0.085  0.1643 success [XX] How To Draw The Pusheen Cat
+ hCaHFv2YWn8  Overstimulating  Overstimulating  0.413  0.41  0.40  0.082  0.2146 success [OK] Lincoln Loud&#39;s Reaction! 😬💀 #short
+ 7wNyw7DlY0A          Neutral  Overstimulating  0.423  0.42  0.40  0.145  0.2559 success [XX] How to study when you are tired after 
+ jiEv6VTDt5c      Educational      Educational  0.180  0.65  0.40  0.135  0.1527 success [OK] Learn to Read - 3-Letter Word - Letter
+ r8iGnwD8i9I      Educational  Overstimulating  0.699  0.70  0.40  0.173  0.3833 success [XX] ABC Song and Many More Nursery Rhymes 
+ jOGuabdHYaE  Overstimulating  Overstimulating  0.346  0.41  0.40  0.158  0.2335 success [OK] Baby Shark Dance 2 | Sing and Dance! |
+ g6CVApMxmqg      Educational      Educational  0.109  0.80  0.40  0.190  0.1578 success [OK] Phonics, Counting, Colors + More Kids 
+ d2S87jXhlV0  Overstimulating  Overstimulating  0.598  0.60  0.40  0.185  0.3505 success [OK] Original Baby Shark | Go #BabySharkCha
+ v7cuoaoUTKQ  Overstimulating  Overstimulating  0.535  0.54  0.40  0.223  0.3478 success [OK] Baby Shark Dance | Pinkfong Sing &amp;
+ KoDg_L6B2y4      Educational  Overstimulating  0.253  0.64  0.40  0.215  0.2302 success [XX] Let Them Cook: Collard Greens 🥬 | Phoe
+ Be4j6lJpFTQ      Educational          Neutral  0.190  0.70  0.40  0.177  0.1819 success [XX] Counting to 20 Song For Kids | Learn T
+ kopx0X8XTMM      Educational  Overstimulating  0.461  0.46  0.40  0.147  0.2728 success [XX] Stand like a flamingo with Ms. Rachel,
+ 9h8RmsptqaI  Overstimulating  Overstimulating  0.373  0.37  0.15  0.183  0.2120 success [OK] New Chicken Dance #shorts  by The Lear
+ rifuEZFieaI      Educational  Overstimulating  0.204  0.68  0.40  0.212  0.2091 success [XX] SUSTAINABLE DEVELOPMENT |#climatechang
+ RxCwVQGlDis  Overstimulating  Overstimulating  0.449  0.45  0.40  0.103  0.2414 success [OK] Baby Shark Dance | DJ Raphi Songs for 
+ 6VQip5MI5d8  Overstimulating  Overstimulating  0.532  0.53  0.40  0.174  0.3173 success [OK] Johny Johny Yes Papa + Wheels On The B
+ LMuBxwVy3HM      Educational      Educational  0.183  0.61  0.40  0.133  0.1529 success [OK] Peppa Pig Full Episodes | Pottery | Ca
+ qbIgrxIfHxI          Neutral  Overstimulating  0.448  0.45  0.40  0.166  0.2791 success [XX] Beautiful Nature with Rural Life - Har
+ e87xaEjYMtg      Educational      Educational  0.152  0.55  0.40  0.134  0.1408 success [OK] Peanut Butter And Jelly 🥜 🍇 #shorts #s
+ YI0bd8Tw8rE      Educational      Educational  0.129  0.79  0.40  0.088  0.1042 success [OK] @Numberblocks- Meet Number Seven | Mee
+ HrDl_1Ov8gc      Educational  Overstimulating  0.364  0.42  0.40  0.198  0.2646 success [XX] Learn Colors with Wonderville Friends 
+ L8A4XbM5sXA      Educational      Educational  0.271  0.47  0.40  0.111  0.1747 success [OK] Dora Becomes a Doctor! 🩺 | FULL EPISOD

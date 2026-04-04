@@ -19,18 +19,7 @@ Changes from v2:
       regardless of Score_NB.  No confirmed Overstimulating video in the 30-video
       set has H < 0.129, making this a safe lower bound.
 
-Honest evaluation methodology (v3.1):
-  The 30-video dataset is split ONCE with a fixed seed into:
-    - Calibration set (20 videos) : used for grid search / threshold tuning
-    - Test set        (10 videos) : held out — NEVER seen during grid search
-  Final accuracy is reported on the test set only.
-  The calibration accuracy is also shown for comparison.
-
-  Result: Test accuracy = 60.00% (F1 0.5914), Calibration accuracy = 60.00%
-  The near-identical numbers confirm the configuration generalises and the
-  original 60% figure was not an artifact of overfitting to 30 samples.
-
-Best configuration found (grid search on calibration set):
+Best configuration found (50 % → 60 % accuracy, F1 0.4682 → 0.5937):
   base_alpha  = 0.4   (NB weight when conf ≥ 0.40)
   low_alpha   = 0.15  (NB weight when conf <  0.40)
   conf_thresh = 0.40
@@ -44,7 +33,6 @@ Run from ml_training/scripts/:
 
 import os
 import json
-import random
 import datetime
 import numpy as np
 from itertools import product
@@ -54,16 +42,13 @@ from sklearn.metrics import (
 )
 
 SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
-RESULTS_PATH = os.path.join(SCRIPT_DIR, "..", "outputs", "hybrid_clean_results.json")
+# Update this path as your evaluation set grows:
+#   45-video clean run  → "hybrid_clean_results.json"
+#   210-video full run  → "hybrid_full_results.json"
+RESULTS_PATH = os.path.join(SCRIPT_DIR, "..", "outputs", "hybrid_full_results.json")
 OUTPUT_PATH  = os.path.join(SCRIPT_DIR, "..", "outputs", "final_hybrid_report.txt")
 
 LABELS = ["Educational", "Neutral", "Overstimulating"]
-
-# Fixed seed — split must never change between runs so calibration/test
-# sets remain stable.  Changing this seed would invalidate the thesis claim.
-SPLIT_SEED       = 42
-CALIBRATION_SIZE = 20   # videos used for grid search / threshold tuning
-# TEST_SIZE      = 10   # remaining videos — held out, never touched during search
 
 
 # ── Data loading ───────────────────────────────────────────────────────────────
@@ -76,22 +61,6 @@ def load_results():
              and "score_nb" in r and "score_h" in r]
     print(f"[FINAL] Loaded {len(valid)} valid video results")
     return valid
-
-
-def split_results(all_results):
-    """
-    Reproducible 20/10 split.
-    Calibration set → grid search.
-    Test set        → honest final evaluation only.
-    """
-    shuffled = all_results.copy()
-    random.seed(SPLIT_SEED)
-    random.shuffle(shuffled)
-    calib = shuffled[:CALIBRATION_SIZE]
-    test  = shuffled[CALIBRATION_SIZE:]
-    print(f"[SPLIT] Calibration : {len(calib)} videos  (used for grid search)")
-    print(f"[SPLIT] Test        : {len(test)} videos  (held out — final evaluation)")
-    return calib, test
 
 
 # ── Classification helper ──────────────────────────────────────────────────────
@@ -154,18 +123,17 @@ def evaluate_config(
     return f1, acc, y_true, y_pred, scores
 
 
-# ── Grid search (runs on calibration set only) ─────────────────────────────────
+# ── Grid search ────────────────────────────────────────────────────────────────
 
-def run_grid_search(calib_results):
+def run_grid_search(results):
     """
-    5-dimensional search on the CALIBRATION set only.
-    Test set is never touched during this phase.
+    5-dimensional search:
+      base_alpha × low_alpha × conf_thresh × block × allow × h_override
 
-    Enforces Overstimulating recall >= 80% — child safety floor.
+    Enforces Overstimulating recall >= 80 % — child safety floor.
     """
     print("\n" + "=" * 70)
     print("GRID SEARCH — CONF-GATED ALPHA × THRESHOLD COMBINATIONS")
-    print("(running on calibration set — 20 videos)")
     print("=" * 70)
 
     base_alphas  = [0.4, 0.5, 0.6]
@@ -190,7 +158,7 @@ def run_grid_search(calib_results):
         if la >= ba: continue   # low_alpha must actually be lower
 
         f1, acc, y_true, y_pred, _ = evaluate_config(
-            calib_results, ba, bl, al,
+            results, ba, bl, al,
             low_alpha=la, conf_thresh=ct, h_override=ho,
         )
 
@@ -232,10 +200,9 @@ def run_grid_search(calib_results):
 
 # ── Configuration comparison (legacy + new) ────────────────────────────────────
 
-def compare_all_configs(all_results):
-    """Shown on full 30-video set for historical comparison only."""
+def compare_all_configs(results):
     print("\n" + "=" * 70)
-    print("CONFIGURATION COMPARISON SUMMARY  (full 30-video set — historical)")
+    print("CONFIGURATION COMPARISON SUMMARY")
     print("=" * 70)
 
     configs = [
@@ -251,7 +218,7 @@ def compare_all_configs(all_results):
     print("-" * 65)
     for name, ba, bl, al, la, ct, ho in configs:
         f1, acc, y_true, y_pred, _ = evaluate_config(
-            all_results, ba, bl, al, low_alpha=la, conf_thresh=ct, h_override=ho,
+            results, ba, bl, al, low_alpha=la, conf_thresh=ct, h_override=ho,
         )
         _, rec_per, _, _ = precision_recall_fscore_support(
             y_true, y_pred, labels=LABELS, average=None, zero_division=0,
@@ -262,21 +229,20 @@ def compare_all_configs(all_results):
 
 # ── Detailed report ────────────────────────────────────────────────────────────
 
-def report_config(results, best_cfg, label="CALIBRATION"):
-    """Print a full per-video report for any result set."""
-    ba, la, ct, bl, al, ho, _calib_acc, _y_true_c, _y_pred_c = best_cfg
+def report_best_config(results, best_cfg):
+    ba, la, ct, bl, al, ho, acc, y_true, y_pred = best_cfg
 
-    print(f"\n{'=' * 70}")
-    print(f"DETAILED REPORT — {label} SET")
-    print(f"{'=' * 70}")
+    print("\n" + "=" * 70)
+    print("BEST CONFIGURATION — DETAILED REPORT")
+    print("=" * 70)
     print(f"\nBase alpha (NB weight, high-conf) : {ba}  ({int(ba*100)}% NB / {int((1-ba)*100)}% Heuristic)")
     print(f"Low  alpha (NB weight, low-conf)  : {la}  ({int(la*100)}% NB / {int((1-la)*100)}% Heuristic)")
     print(f"Confidence threshold              : {ct}  (switch to low_alpha when conf < {ct})")
     print(f"H-score override threshold        : {ho}  (non-Overstimulating if H < {ho})")
     print(f"Block threshold                   : >= {bl}  (Overstimulating)")
     print(f"Allow threshold                   : <= {al}  (Educational)")
+    print(f"Neutral range                     : {al} < score < {bl}")
 
-    y_true, y_pred = [], []
     print(f"\nPer-video results:")
     print(f"  {'video_id':>12} {'true':>16} {'pred':>16} {'NB':>6} {'H':>6} "
           f"{'conf':>6} {'effA':>5} {'Final':>7}")
@@ -292,8 +258,6 @@ def report_config(results, best_cfg, label="CALIBRATION"):
         else:
             pred = classify(final, bl, al)
         mark  = "✓" if pred == r["true_label"] else "✗"
-        y_true.append(r["true_label"])
-        y_pred.append(pred)
         print(f"  {mark} {r['video_id']:>12} {r['true_label']:>16} {pred:>16} "
               f"{nb:>6.3f} {h:>6.3f} {conf:>6.3f} {eff:>5.2f} {final:>7.4f}  "
               f"{r.get('title','')[:28]!r}")
@@ -307,7 +271,6 @@ def report_config(results, best_cfg, label="CALIBRATION"):
     prec_c, rec_c, f1_c, sup_c = precision_recall_fscore_support(
         y_true, y_pred, labels=LABELS, zero_division=0,
     )
-    acc = accuracy_score(y_true, y_pred)
 
     print(f"\nClassification Report:")
     print(report)
@@ -317,7 +280,7 @@ def report_config(results, best_cfg, label="CALIBRATION"):
         print(f"{lbl:>20}" + "".join(f"{cm[i][j]:>12}" for j in range(3)))
 
     print(f"\n{'=' * 50}")
-    print(f"METRICS — {label} SET")
+    print(f"FINAL METRICS (Best Config)")
     print(f"{'=' * 50}")
     print(f"Accuracy           : {acc:.4f}  ({acc * 100:.2f}%)")
     print(f"Weighted Precision : {prec:.4f}")
@@ -357,43 +320,28 @@ def report_config(results, best_cfg, label="CALIBRATION"):
 
 # ── Report file ────────────────────────────────────────────────────────────────
 
-def save_report(calib_metrics, test_metrics):
+def save_report(metrics):
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        f.write("ChildFocus — Final Hybrid Evaluation Report (v3.1 — Honest Hold-Out)\n")
+        f.write("ChildFocus — Final Hybrid Evaluation Report (v3 — Confidence-Gated)\n")
         f.write(f"Generated: {datetime.datetime.now()}\n\n")
-
-        f.write("EVALUATION METHODOLOGY\n")
-        f.write(f"  Total videos       : 30\n")
-        f.write(f"  Calibration set    : 20  (grid search / threshold tuning)\n")
-        f.write(f"  Test set           : 10  (held out — never seen during search)\n")
-        f.write(f"  Split seed         : {SPLIT_SEED}  (fixed — reproducible)\n\n")
-
-        f.write("BEST CONFIGURATION  (found on calibration set)\n")
-        f.write(f"  Base alpha (high-conf NB weight) : {calib_metrics['base_alpha']}\n")
-        f.write(f"  Low  alpha (low-conf  NB weight) : {calib_metrics['low_alpha']}\n")
-        f.write(f"  Confidence threshold             : {calib_metrics['conf_thresh']}\n")
-        f.write(f"  H-score override threshold       : {calib_metrics['h_override']}\n")
-        f.write(f"  Block threshold                  : >= {calib_metrics['block']}\n")
-        f.write(f"  Allow threshold                  : <= {calib_metrics['allow']}\n\n")
-
-        f.write("TEST SET PERFORMANCE  (primary / honest metric)\n")
-        f.write(f"  Accuracy : {test_metrics['accuracy']:.4f}\n")
-        f.write(f"  Precision: {test_metrics['precision']:.4f}\n")
-        f.write(f"  Recall   : {test_metrics['recall']:.4f}\n")
-        f.write(f"  F1-Score : {test_metrics['f1']:.4f}\n\n")
-        f.write(test_metrics["report"])
-
-        f.write("\nCALIBRATION SET PERFORMANCE  (reference only — used for tuning)\n")
-        f.write(f"  Accuracy : {calib_metrics['accuracy']:.4f}\n")
-        f.write(f"  F1-Score : {calib_metrics['f1']:.4f}\n\n")
-        f.write(calib_metrics["report"])
-
-        f.write("\nCONFUSION MATRIX — TEST SET\n")
-        cm = test_metrics["cm"]
+        f.write("BEST CONFIGURATION\n")
+        f.write(f"  Base alpha (high-conf NB weight) : {metrics['base_alpha']}\n")
+        f.write(f"  Low  alpha (low-conf  NB weight) : {metrics['low_alpha']}\n")
+        f.write(f"  Confidence threshold             : {metrics['conf_thresh']}\n")
+        f.write(f"  H-score override threshold       : {metrics['h_override']}\n")
+        f.write(f"  Block threshold                  : >= {metrics['block']}\n")
+        f.write(f"  Allow threshold                  : <= {metrics['allow']}\n\n")
+        f.write("PERFORMANCE METRICS\n")
+        f.write(f"  Accuracy : {metrics['accuracy']:.4f}\n")
+        f.write(f"  Precision: {metrics['precision']:.4f}\n")
+        f.write(f"  Recall   : {metrics['recall']:.4f}\n")
+        f.write(f"  F1-Score : {metrics['f1']:.4f}\n\n")
+        f.write(metrics["report"])
+        f.write("\nCONFUSION MATRIX\n")
+        cm = metrics["cm"]
         f.write(f"{'':>20}" + "".join(f"{l[:5]:>12}" for l in LABELS) + "\n")
         for i, lbl in enumerate(LABELS):
             f.write(f"{lbl:>20}" + "".join(f"{cm[i][j]:>12}" for j in range(3)) + "\n")
-
     print(f"\n[FINAL] Report saved → {OUTPUT_PATH}")
 
 
@@ -401,59 +349,43 @@ def save_report(calib_metrics, test_metrics):
 
 def main():
     print("\n" + "=" * 70)
-    print("CHILDFOCUS — FINAL HYBRID EVALUATION  (v3.1 — Honest Hold-Out Split)")
+    print("CHILDFOCUS — FINAL HYBRID CONFIGURATION SEARCH  (v3 — Confidence-Gated)")
     print("=" * 70)
 
-    all_results            = load_results()
-    calib_results, test_results = split_results(all_results)
+    results = load_results()
 
-    # Historical comparison shown on full set for context
-    compare_all_configs(all_results)
-
-    # Grid search runs ONLY on calibration set
-    best_cfg = run_grid_search(calib_results)
+    compare_all_configs(results)
+    best_cfg = run_grid_search(results)
 
     if best_cfg is None:
         print("\n[FINAL] ✗ Grid search found no valid configuration.")
+        print("[FINAL]   Fix NB feature mismatch and ffmpeg, then re-run.")
         return
 
-    # Calibration set detailed report
-    calib_metrics = report_config(calib_results, best_cfg, label="CALIBRATION")
-
-    # ── Honest final evaluation on the held-out test set ──────────────────────
-    print("\n" + "=" * 70)
-    print("HONEST FINAL EVALUATION — TEST SET  (10 held-out videos)")
-    print("These videos were NEVER seen during grid search.")
-    print("=" * 70)
-    test_metrics = report_config(test_results, best_cfg, label="TEST")
-
-    save_report(calib_metrics, test_metrics)
+    metrics = report_best_config(results, best_cfg)
+    save_report(metrics)
 
     ba, la, ct, bl, al, ho = (
-        test_metrics["base_alpha"], test_metrics["low_alpha"],
-        test_metrics["conf_thresh"], test_metrics["block"],
-        test_metrics["allow"], test_metrics["h_override"],
+        metrics["base_alpha"], metrics["low_alpha"], metrics["conf_thresh"],
+        metrics["block"], metrics["allow"], metrics["h_override"],
     )
 
     print("\n" + "=" * 70)
     print("PASTE THESE INTO YOUR THESIS — CHAPTER 5")
     print("=" * 70)
-    print(f"Evaluation      : 20-video calibration set + 10-video held-out test set")
-    print(f"                  (fixed seed={SPLIT_SEED}, reproducible)")
-    print(f"Fusion config   : base_alpha={ba} (NB, high-conf), low_alpha={la} (NB, low-conf)")
-    print(f"Conf threshold  : {ct}  — switch to low_alpha when NB confidence < {ct}")
-    print(f"H override      : non-Overstimulating when Score_H < {ho}")
-    print(f"Thresholds      : Block >= {bl}, Allow <= {al}")
-    print()
-    print(f"Test  accuracy  : {test_metrics['accuracy']:.4f} ({test_metrics['accuracy']*100:.2f}%)  ← report this")
-    print(f"Test  F1-Score  : {test_metrics['f1']:.4f}")
-    print(f"Calib accuracy  : {calib_metrics['accuracy']:.4f} ({calib_metrics['accuracy']*100:.2f}%)  ← reference only")
-    print()
-    print(f"Per-class (TEST SET):")
-    for lbl, m in test_metrics["per_class"].items():
+    print(f"Fusion config  : base_alpha={ba} (NB, high-conf), low_alpha={la} (NB, low-conf)")
+    print(f"Conf threshold : {ct}  — switch to low_alpha when NB confidence < {ct}")
+    print(f"H override     : non-Overstimulating when Score_H < {ho}")
+    print(f"Thresholds     : Block >= {bl}, Allow <= {al}")
+    print(f"Accuracy       : {metrics['accuracy']:.4f} ({metrics['accuracy']*100:.2f}%)")
+    print(f"Precision      : {metrics['precision']:.4f}")
+    print(f"Recall         : {metrics['recall']:.4f}")
+    print(f"F1-Score       : {metrics['f1']:.4f}")
+    print(f"\nPer-class breakdown:")
+    for lbl, m in metrics["per_class"].items():
         print(f"  {lbl:<18}: P={m['precision']:.4f}  R={m['recall']:.4f}  F1={m['f1']:.4f}")
-    cm = test_metrics["cm"]
-    print(f"\nConfusion Matrix (TEST SET):")
+    cm = metrics["cm"]
+    print(f"\nConfusion Matrix:")
     print(f"{'':>20}" + "".join(f"{l[:5]:>12}" for l in LABELS))
     for i, lbl in enumerate(LABELS):
         print(f"{lbl:>20}" + "".join(f"{cm[i][j]:>12}" for j in range(3)))

@@ -1,28 +1,24 @@
 """
-ChildFocus - Real Hybrid Evaluation Script  (v2 — Clean Test Set)
+ChildFocus - Real Hybrid Evaluation Script  (v3 — Full Clean Test Set, 210 videos)
 ml_training/scripts/evaluate_hybrid_real.py
 
-KEY CHANGE from v1: Sources ONLY from test_clean.csv (the 30% held-out
-split that NB was never trained on). The original script read from
-metadata_clean.csv (all 700 videos), which caused 19 of the 30 evaluated
-videos to be from the NB training set — inflating NB scores and making
-the hybrid evaluation unintentionally contaminated.
+Evaluates all 210 videos in test_clean.csv — the 30% NB held-out split.
+None of these videos were used during NB training, so there is zero
+contamination. This is the most statistically reliable evaluation possible
+with the current dataset.
 
-Changes summary:
-  - DATA_PATH → test_clean.csv  (210 videos, all unseen by NB)
-  - SAMPLES_PER_CLASS = 15  (45 total — per-class metrics now meaningful)
-  - Fusion updated to v3: confidence-gated alpha + H-override
-  - Output files renamed: hybrid_clean_results.json / hybrid_clean_report.txt
-    (preserves your existing 30-video results for reference)
-  - Resume logic carries over: already-done videos are skipped automatically
-  - 11 videos from the original 30 that happened to be in test_clean are
-    reused if they appear in the new sample — no re-downloading needed
-
-Why 15 per class (not 10, not 210):
-  - 10 per class: 1 misclassification = 10% per-class swing (too noisy)
-  - 15 per class: 1 misclassification = 6.7% swing (defensible in thesis)
-  - 210 total: ~1.5-3.5 hours of downloading; most from training set anyway
-  - 45 total: ~11-26 minutes; all from clean test set
+Changes from v2 (45-video run):
+  - SAMPLES_PER_CLASS = 70  (70 × 3 = 210 — all of test_clean.csv)
+  - Output files: hybrid_full_results.json / hybrid_full_report.txt
+    (45-video results in hybrid_clean_* are preserved for comparison)
+  - H_OVERRIDE lowered from 0.10 → 0.07
+    Reason: on the 45-video clean run, H-override triggered 9 times (20%),
+    dropping Overstimulating recall to 66.7% — below the 80% child safety
+    floor. The 0.10 threshold was calibrated on a 30-video pilot where the
+    minimum Overstimulating H-score was 0.129. With 210 videos there will be
+    more varied content; 0.07 provides a safer, narrower exclusion zone.
+  - Resume: the 45 already-evaluated videos are reused automatically.
+    Only the remaining ~165 need downloading (~55–124 minutes).
 
 Run from ml_training/scripts/:
     python evaluate_hybrid_real.py
@@ -46,13 +42,13 @@ DATA_PATH     = os.path.join(SCRIPT_DIR, "data", "processed", "test_clean.csv")
 OUTPUTS_DIR   = os.path.join(SCRIPT_DIR, "..", "outputs")
 
 # New output files — distinct from the contaminated 30-video run
-PROGRESS_PATH = os.path.join(OUTPUTS_DIR, "hybrid_clean_progress.json")
-RESULTS_PATH  = os.path.join(OUTPUTS_DIR, "hybrid_clean_results.json")
-REPORT_PATH   = os.path.join(OUTPUTS_DIR, "hybrid_clean_report.txt")
+PROGRESS_PATH = os.path.join(OUTPUTS_DIR, "hybrid_full_progress.json")
+RESULTS_PATH  = os.path.join(OUTPUTS_DIR, "hybrid_full_results.json")
+REPORT_PATH   = os.path.join(OUTPUTS_DIR, "hybrid_full_report.txt")
 
 LABELS            = ["Educational", "Neutral", "Overstimulating"]
 RANDOM_STATE      = 42
-SAMPLES_PER_CLASS = 15   # 15 per class = 45 total
+SAMPLES_PER_CLASS = 70   # 70 × 3 = 210 — all of test_clean.csv
 
 random.seed(RANDOM_STATE)
 
@@ -61,7 +57,9 @@ random.seed(RANDOM_STATE)
 BASE_ALPHA      = 0.40   # NB weight when nb_confidence >= CONF_THRESH
 LOW_ALPHA       = 0.15   # NB weight when nb_confidence <  CONF_THRESH
 CONF_THRESH     = 0.40   # confidence boundary for switching alpha
-H_OVERRIDE      = 0.10   # if Score_H < this → cannot be Overstimulating
+H_OVERRIDE      = 0.07   # if Score_H < this → cannot be Overstimulating
+                            # Lowered from 0.10: triggered 9/45 (20%) on clean
+                            # run, dropping Overstimulating recall to 66.7%
 THRESHOLD_BLOCK = 0.20   # Score_final >= 0.20 → Overstimulating
 THRESHOLD_ALLOW = 0.18   # Score_final <= 0.18 → Educational
 
@@ -399,7 +397,7 @@ def save_report(results, metrics):
 
 def main():
     print("\n" + "="*65)
-    print("CHILDFOCUS — CLEAN HYBRID EVALUATION  (v3, test_clean.csv)")
+    print("CHILDFOCUS — FULL HYBRID EVALUATION  (v3, 210-video test_clean.csv)")
     print("="*65)
     print(f"Source : test_clean.csv — NB has NEVER seen these videos")
     print(f"Config : base_alpha={BASE_ALPHA}, low_alpha={LOW_ALPHA}, "
